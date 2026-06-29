@@ -22,7 +22,6 @@ sub init()
     m.credentials = invalid
     m.account = invalid
     m.pendingSeriesCategory = invalid
-    m.liveTestMode = true
 
     savedAccount = LoadPlaylistAccount()
     if HasValidPlaylistAccount(savedAccount)
@@ -59,19 +58,15 @@ sub showHome(account as object)
 end sub
 
 sub openSeriesCatalog(account as object)
-    openLiveCatalog(account)
-end sub
-
-sub openLiveCatalog(account as object)
     m.loginScreen.loading = false
     m.loginScreen.visible = false
     m.homeScreen.visible = false
     m.seriesCatalogScreen.callFunc("resetForLoading")
-    m.seriesCatalogScreen.message = "Carregando categorias de TV ao vivo..."
+    m.seriesCatalogScreen.message = "Carregando categorias de séries..."
     m.seriesCatalogScreen.loading = true
     m.seriesCatalogScreen.visible = true
     m.seriesCatalogScreen.callFunc("setCatalogFocus")
-    PRINT "LIVE_TEST_SCREEN_OPENED"
+    PRINT "SERIES_CATALOG_SCREEN_OPENED"
     m.account = account
     m.credentials = account
     m.seriesCatalogScreen.account = m.account
@@ -109,10 +104,6 @@ sub onXtreamResult()
 
     if result.request = "connect" then
         onConnectResult(result)
-    else if result.request = "getLiveCategories" then
-        onLiveCategoriesResult(result)
-    else if result.request = "getLiveStreams" then
-        onLiveStreamsResult(result)
     else if result.request = "getSeriesCategories" then
         onSeriesCategoriesResult(result)
     else if result.request = "getSeries" then
@@ -131,7 +122,7 @@ sub onConnectResult(result as object)
         m.credentials = result.account
         m.account = result.account
         SavePlaylistAccount(m.credentials.dns, m.credentials.username, m.credentials.password)
-        openLiveCatalog(m.credentials)
+        openSeriesCatalog(m.credentials)
     else
         m.loginScreen.loading = false
         PRINT "CONNECT_ERROR code=" + PxtTrim(result.code)
@@ -150,56 +141,14 @@ sub onLoadCategoriesRequested()
     end if
 
     m.seriesCatalogScreen.loading = true
-    m.seriesCatalogScreen.message = "Carregando categorias de TV ao vivo..."
+    m.seriesCatalogScreen.message = "Carregando categorias de séries..."
     m.loadingCategories = true
     m.catalogTimeoutTimer.control = "stop"
     m.catalogTimeoutTimer.duration = 30
     m.catalogTimeoutTimer.control = "start"
-    PRINT "CARREGANDO CATEGORIAS LIVE"
+    PRINT "SERIES_CATEGORIES_ENDPOINT action=get_series_categories"
     m.xtreamService.control = "STOP"
-    m.xtreamService.action = "getLiveCategories"
-    m.xtreamService.dns = m.account.dns
-    m.xtreamService.username = m.account.username
-    m.xtreamService.password = m.account.password
-    m.xtreamService.control = "RUN"
-end sub
-
-sub onLiveCategoriesResult(result as object)
-    if result = invalid then return
-    if not m.loadingCategories then return
-
-    m.loadingCategories = false
-    m.catalogTimeoutTimer.control = "stop"
-
-    if result.success = true
-        PRINT "CATEGORIAS LIVE RECEBIDAS: " + result.data.Count().ToStr()
-        m.seriesCatalogScreen.callFunc("setCategories", result.data)
-    else
-        PRINT "ERRO AO CARREGAR LIVE: " + PxtTrim(result.message)
-        m.seriesCatalogScreen.callFunc("showError", LiveLoadErrorMessage())
-    end if
-end sub
-
-sub onLiveStreamsResult(result as object)
-    if result = invalid then return
-    if not m.catalogLoading then return
-    m.catalogLoading = false
-    m.catalogTimeoutTimer.control = "stop"
-    m.seriesCatalogScreen.loading = false
-    if result.success = true
-        PRINT "CANAIS RECEBIDOS: " + result.data.Count().ToStr()
-        channels = LimitValidLiveChannels(result.data, 50)
-        PRINT "CANAIS RENDERIZADOS: " + channels.Count().ToStr()
-        m.seriesCatalogScreen.series = channels
-        if channels.Count() = 0
-            m.seriesCatalogScreen.message = "Nenhum canal encontrado nesta categoria."
-        else
-            m.seriesCatalogScreen.message = "Canais recebidos: " + channels.Count().ToStr()
-        end if
-    else
-        PRINT "ERRO AO BUSCAR CANAIS: " + PxtTrim(result.message)
-        m.seriesCatalogScreen.message = "Erro ao carregar canais desta categoria"
-    end if
+    m.xtreamService.callFunc("getSeriesCategories", m.account)
 end sub
 
 sub onSeriesCategoriesResult(result as object)
@@ -249,13 +198,13 @@ sub onCatalogTimeout()
     if m.loadingCategories
         m.loadingCategories = false
         m.seriesCatalogScreen.loading = false
-        m.seriesCatalogScreen.message = LiveLoadErrorMessage()
-        PRINT "ERRO AO CARREGAR LIVE: timeout"
+        m.seriesCatalogScreen.message = "Tempo esgotado ao carregar categorias."
+        PRINT "SERIES_CATEGORIES_TIMEOUT"
     else if m.catalogLoading
         m.catalogLoading = false
         m.seriesCatalogScreen.loading = false
-        m.seriesCatalogScreen.message = "Erro ao carregar canais desta categoria"
-        PRINT "TIMEOUT AO BUSCAR CANAIS"
+        m.seriesCatalogScreen.message = "Tempo esgotado ao carregar series."
+        PRINT "SERIES_CATALOG_TIMEOUT"
     end if
 end sub
 
@@ -269,13 +218,17 @@ sub onCategorySelected(event as object)
     m.catalogLoading = true
     m.seriesCatalogScreen.series = []
     m.seriesCatalogScreen.loading = true
-    m.seriesCatalogScreen.message = "Carregando canais de TV ao vivo..."
+    m.seriesCatalogScreen.message = "Carregando séries..."
     m.catalogTimeoutTimer.control = "stop"
-    m.catalogTimeoutTimer.duration = 15
+    m.catalogTimeoutTimer.duration = 60
     m.catalogTimeoutTimer.control = "start"
-    PRINT "BUSCANDO CANAIS DA CATEGORIA"
+    if categoryId = ""
+        PRINT "SERIES_CATALOG_ENDPOINT action=get_series"
+    else
+        PRINT "SERIES_CATALOG_ENDPOINT action=get_series category_id=" + categoryId
+    end if
     m.xtreamService.control = "STOP"
-    m.xtreamService.callFunc("getLiveStreams", { account: m.account, category_id: categoryId })
+    m.xtreamService.callFunc("getSeries", { account: m.account, category_id: categoryId })
 end sub
 
 sub onHomeSeriesSelected()
@@ -306,22 +259,6 @@ sub onCatalogBackRequested()
     showHome(m.account)
 end sub
 
-function LimitValidLiveChannels(channels as dynamic, maxItems as integer) as object
-    validChannels = []
-    if channels = invalid then return validChannels
-    for each channel in channels
-        if validChannels.Count() >= maxItems then exit for
-        if channel <> invalid
-            channelName = PxtTrim(channel.name)
-            streamId = PxtTrim(channel.stream_id)
-            if channelName <> "" and streamId <> ""
-                validChannels.Push(channel)
-            end if
-        end if
-    end for
-    return validChannels
-end function
-
 function CategoryLoadErrorMessage(result as dynamic) as string
     if result <> invalid and result.code = "timeout" then return "Tempo esgotado ao carregar categorias." + Chr(10) + "Pressione OK para tentar novamente."
     return "Erro ao carregar categorias. Verifique a lista ou o login." + Chr(10) + "Pressione OK para tentar novamente."
@@ -336,8 +273,4 @@ function RetryMessage(message as dynamic, contentName as string) as string
     text = PxtTrim(message)
     if text = "" then text = "Nao foi possivel carregar " + contentName + "."
     return text + Chr(10) + "Pressione OK para tentar novamente."
-end function
-
-function LiveLoadErrorMessage() as string
-    return "Não foi possível carregar TV ao vivo. Verifique DNS, usuário, senha ou formato da lista."
 end function

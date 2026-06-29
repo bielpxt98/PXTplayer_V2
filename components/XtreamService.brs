@@ -42,33 +42,6 @@ function getSeries(options as object) as void
     m.top.control = "RUN"
 end function
 
-function getLiveCategories(account as object) as void
-    if account = invalid
-        publishResult({ request: "getLiveCategories", success: false, code: "invalid_request", message: LiveLoadErrorMessage() })
-        return
-    end if
-    m.top.action = "getLiveCategories"
-    m.top.dns = account.dns
-    m.top.username = account.username
-    m.top.password = account.password
-    m.top.request = { action: "getLiveCategories", dns: account.dns, username: account.username, password: account.password }
-    m.top.control = "RUN"
-end function
-
-function getLiveStreams(options as object) as void
-    if options = invalid or options.account = invalid
-        publishResult({ request: "getLiveStreams", success: false, code: "invalid_request", message: LiveLoadErrorMessage() })
-        return
-    end if
-    m.top.action = "getLiveStreams"
-    m.top.dns = options.account.dns
-    m.top.username = options.account.username
-    m.top.password = options.account.password
-    m.top.category_id = options.category_id
-    m.top.request = { action: "getLiveStreams", dns: options.account.dns, username: options.account.username, password: options.account.password, category_id: options.category_id }
-    m.top.control = "RUN"
-end function
-
 sub runRequest()
     request = m.top.request
     action = PxtTrim(m.top.action)
@@ -83,10 +56,6 @@ sub runRequest()
     action = PxtTrim(request.action)
     if action = "connect"
         connectRequest(request)
-    else if action = "getLiveCategories"
-        getLiveCategoriesRequest(request)
-    else if action = "getLiveStreams"
-        getLiveStreamsRequest(request)
     else if action = "getSeriesCategories"
         getSeriesCategoriesRequest(request)
     else if action = "getSeries"
@@ -117,57 +86,34 @@ sub connectRequest(request as object)
     end if
 end sub
 
-sub getLiveCategoriesRequest(request as object)
-    PRINT "CARREGANDO CATEGORIAS LIVE"
-    json = fetchJson(request, "get_live_categories", invalid)
-    if json = invalid then return
-    if Type(json) <> "roArray"
-        publishResult({ request: "getLiveCategories", success: false, code: "invalid_response", error: LiveLoadErrorMessage(), message: LiveLoadErrorMessage() })
-        return
-    end if
-    PRINT "CATEGORIAS LIVE RECEBIDAS: " + json.Count().ToStr()
-    publishResult({ request: "getLiveCategories", success: true, data: json })
-end sub
-
-sub getLiveStreamsRequest(request as object)
-    categoryId = PxtTrim(request.category_id)
-    PRINT "BUSCANDO CANAIS DA CATEGORIA"
-    params = invalid
-    if categoryId <> "" and categoryId <> "all" then params = { category_id: categoryId }
-    json = fetchJson(request, "get_live_streams", params)
-    if json = invalid then return
-    if Type(json) <> "roArray"
-        publishResult({ request: "getLiveStreams", success: false, code: "invalid_response", error: "Erro ao carregar canais desta categoria", message: "Erro ao carregar canais desta categoria", category_id: categoryId })
-        return
-    end if
-    PRINT "CANAIS RECEBIDOS: " + json.Count().ToStr()
-    publishResult({ request: "getLiveStreams", success: true, data: json, category_id: categoryId })
-end sub
-
 sub getSeriesCategoriesRequest(request as object)
-    PRINT "XTREAM_CATEGORIES_START"
+    PRINT "SERIES_CATEGORIES_ENDPOINT action=get_series_categories"
     json = fetchJson(request, "get_series_categories", invalid)
     if json = invalid then return
     if Type(json) <> "roArray"
         publishResult({ request: "getSeriesCategories", success: false, code: "invalid_response", error: "O servidor retornou categorias invalidas.", message: "O servidor retornou categorias invalidas." })
         return
     end if
-    PRINT "XTREAM_CATEGORIES_COUNT " + json.Count().ToStr()
+    PRINT "SERIES_CATEGORIES_RECEIVED " + json.Count().ToStr()
     publishResult({ request: "getSeriesCategories", success: true, data: json })
 end sub
 
 sub getSeriesRequest(request as object)
-    PRINT "XTREAM_SERIES_START category=" + PxtTrim(request.category_id)
     params = invalid
     categoryId = PxtTrim(request.category_id)
-    if categoryId <> "" and categoryId <> "all" then params = { category_id: categoryId }
+    if categoryId = ""
+        PRINT "SERIES_CATALOG_ENDPOINT action=get_series"
+    else
+        PRINT "SERIES_CATALOG_ENDPOINT action=get_series category_id=" + categoryId
+        params = { category_id: categoryId }
+    end if
     json = fetchJson(request, "get_series", params)
     if json = invalid then return
     if Type(json) <> "roArray"
         publishResult({ request: "getSeries", success: false, code: "invalid_response", error: "O servidor retornou series invalidas.", message: "O servidor retornou series invalidas." })
         return
     end if
-    PRINT "XTREAM_SERIES_COUNT " + json.Count().ToStr()
+    PRINT "SERIES_ITEMS_RECEIVED " + json.Count().ToStr()
     publishResult({ request: "getSeries", success: true, data: json, category_id: PxtTrim(request.category_id) })
 end sub
 
@@ -213,11 +159,7 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
     msg = wait(timeoutMs, port)
     if msg = invalid
         transfer.AsyncCancel()
-        if action = "get_live_streams"
-            PRINT "TIMEOUT AO BUSCAR CANAIS"
-        else
-            PRINT "XTREAM_REQUEST_TIMEOUT action=" + action
-        end if
+        PRINT "XTREAM_REQUEST_TIMEOUT action=" + action
         publishResult({ success: false, request: requestNameForAction(action), code: "timeout", error: timeoutMessage(action), message: timeoutMessage(action) })
         return invalid
     end if
@@ -247,45 +189,31 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
 end function
 
 function requestNameForAction(action as string) as string
-    if action = "get_live_categories" then return "getLiveCategories"
-    if action = "get_live_streams" then return "getLiveStreams"
     if action = "get_series_categories" then return "getSeriesCategories"
     if action = "get_series" then return "getSeries"
     return action
 end function
 
 function networkMessage(action as string) as string
-    if action = "get_live_streams" then return "Erro ao carregar canais desta categoria"
-    if action = "get_live_categories" then return LiveLoadErrorMessage()
     if action = "get_series" then return "Nao foi possivel carregar series."
     if action = "get_series_categories" then return "Nao foi possivel carregar categorias."
     return "Não foi possível conectar ao servidor."
 end function
 
 function timeoutMessage(action as string) as string
-    if action = "get_live_streams" then return "Erro ao carregar canais desta categoria"
-    if action = "get_live_categories" then return LiveLoadErrorMessage()
     if action = "get_series_categories" then return "Tempo esgotado ao carregar categorias."
     if action = "get_series" then return "Tempo esgotado ao carregar series."
     return "Tempo de conexão esgotado. Verifique o servidor."
 end function
 
 function requestTimeoutMs(action as string) as integer
-    if action = "get_live_categories" then return 30000
-    if action = "get_live_streams" then return 15000
     if action = "get_series_categories" then return 30000
     if action = "get_series" then return 60000
     return 15000
 end function
 
 function invalidMessage(action as string) as string
-    if action = "get_live_streams" then return "Erro ao carregar canais desta categoria"
-    if action = "get_live_categories" then return LiveLoadErrorMessage()
     if action = "get_series_categories" then return "O servidor retornou categorias invalidas."
     if action = "get_series" then return "O servidor retornou series invalidas."
     return "O servidor retornou uma resposta inválida."
-end function
-
-function LiveLoadErrorMessage() as string
-    return "Não foi possível carregar TV ao vivo. Verifique DNS, usuário, senha ou formato da lista."
 end function

@@ -12,7 +12,7 @@ end sub
 sub onAccountChanged()
     m.account = m.top.account
     if m.account <> invalid then
-        PRINT "LIVE_ACCOUNT_RECEIVED"
+        PRINT "SERIES_ACCOUNT_RECEIVED"
         loadCategories()
     else
         showError("Conta nao encontrada.")
@@ -20,9 +20,9 @@ sub onAccountChanged()
 end sub
 
 sub loadCategories()
-    PRINT "LOAD_LIVE_CATEGORIES_REQUESTED"
+    PRINT "LOAD_SERIES_CATEGORIES_REQUESTED"
     m.top.loadCategoriesRequested = true
-    showLoading("Carregando categorias de TV ao vivo...")
+    showLoading("Carregando categorias de séries...")
 end sub
 
 sub showLoading(message as string)
@@ -42,6 +42,13 @@ end sub
 sub setCategories(categories as object)
     m.categories = []
 
+    m.categories.Push({
+        id: "",
+        name: "TODAS",
+        label: "TODAS",
+        media_type: "series"
+    })
+
     validCount = 0
     if categories <> invalid then
         for each category in categories
@@ -53,7 +60,7 @@ sub setCategories(categories as object)
                     id: categoryId,
                     name: categoryName,
                     label: categoryName + " (id: " + categoryId + ")",
-                    media_type: "live"
+                    media_type: "series"
                 })
             end if
         end for
@@ -78,7 +85,7 @@ sub renderCategories()
     else
         m.top.message = "Selecione uma categoria e pressione OK."
     end if
-    PRINT "LIVE_CATEGORIES_RENDERED"
+    PRINT "SERIES_CATEGORIES_RENDERED"
 end sub
 sub onCategoriesChanged()
     setCategories(m.top.categories)
@@ -86,25 +93,33 @@ end sub
 sub onSeriesChanged()
     root = CreateObject("roSGNode", "ContentNode")
     renderedCount = 0
+    receivedCount = 0
+    if m.top.series <> invalid then receivedCount = m.top.series.Count()
+    PRINT "SERIES_ITEMS_RECEIVED " + receivedCount.ToStr()
+    if m.top.series = invalid
+        m.seriesGrid.content = root
+        PRINT "SERIES_ITEMS_RENDERED 0"
+        return
+    end if
     for each s in m.top.series
         if renderedCount >= 50 then exit for
-        if s <> invalid
-            channelName = safe(s.name, "")
-            streamId = safe(s.stream_id, "")
-            if channelName <> "" and streamId <> ""
-                n = root.createChild("ContentNode")
-                n.name = channelName
-                n.title = channelName + " (id: " + streamId + ")"
-                n.cover = safe(s.stream_icon, safe(s.cover, ""))
-                n.stream_icon = n.cover
-                n.stream_id = streamId
-                n.category_id = safe(s.category_id, "")
-                renderedCount = renderedCount + 1
-            end if
+        if IsRenderableSeriesItem(s)
+            seriesName = safe(s.name, "")
+            seriesId = safe(s.series_id, "")
+            n = root.createChild("ContentNode")
+            n.name = seriesName
+            n.title = seriesName
+            n.cover = safe(s.cover, safe(s.stream_icon, ""))
+            n.stream_icon = n.cover
+            n.series_id = seriesId
+            n.category_id = safe(s.category_id, "")
+            renderedCount = renderedCount + 1
+        else
+            PRINT "IGNORED_NON_SERIES_ITEM"
         end if
     end for
     m.seriesGrid.content = root
-    PRINT "CANAIS RENDERIZADOS: " + renderedCount.ToStr()
+    PRINT "SERIES_ITEMS_RENDERED " + renderedCount.ToStr()
 end sub
 sub onLoadingChanged()
     m.loading = m.top.loading
@@ -136,9 +151,9 @@ function onKeyEvent(key as string, press as boolean) as boolean
         end if
         if m.focusArea = "categories"
             item = focusedNode(m.categoryList)
-            if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: safe(item.name, item.title), media_type: "live" }
+            if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: safe(item.name, item.title), media_type: "series" }
         else
-            m.top.message = "Selecione uma categoria para carregar os canais."
+            m.top.message = "Selecione uma categoria para carregar as séries."
         end if
         return true
     else if key = "back"
@@ -158,4 +173,12 @@ function safe(v as dynamic, fallback as string) as string
     t = v.ToStr()
     if t = "" or LCase(t) = "invalid" or LCase(t) = "null" or LCase(t) = "undefined" then return fallback
     return t
+end function
+
+function IsRenderableSeriesItem(item as dynamic) as boolean
+    if item = invalid then return false
+    if safe(item.stream_type, "") = "live" then return false
+    if safe(item.series_id, "") = "" then return false
+    if safe(item.name, "") = "" then return false
+    return true
 end function

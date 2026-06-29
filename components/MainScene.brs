@@ -17,9 +17,15 @@ sub init()
     m.catalogLoading = false
     m.credentials = invalid
     m.account = invalid
+    m.pendingSeriesCategory = invalid
 
-    m.loginScreen.account = LoadPlaylistAccount()
-    showLogin()
+    savedAccount = LoadPlaylistAccount()
+    if HasValidPlaylistAccount(savedAccount)
+        openSeriesCatalog(savedAccount)
+    else
+        m.loginScreen.account = savedAccount
+        showLogin()
+    end if
 end sub
 
 sub showLogin()
@@ -41,6 +47,7 @@ sub openSeriesCatalog(account as object)
     m.seriesCatalogScreen.callFunc("setCatalogFocus")
     PRINT "SERIES_SCREEN_OPENED"
     m.account = account
+    m.credentials = account
     m.seriesCatalogScreen.account = m.account
 end sub
 
@@ -103,8 +110,14 @@ end sub
 sub onLoadCategoriesRequested()
     if m.loadingCategories then return
     if m.account = invalid then m.account = m.credentials
-    if m.account = invalid or PxtTrim(m.account.dns) = "" or PxtTrim(m.account.username) = "" or PxtTrim(m.account.password) = ""
+    if not HasValidPlaylistAccount(m.account)
         m.seriesCatalogScreen.callFunc("showError", "Conta nao encontrada.")
+        return
+    end if
+
+    cachedCategories = LoadSeriesCategoriesCache()
+    if cachedCategories <> invalid
+        m.seriesCatalogScreen.callFunc("setCategories", cachedCategories)
         return
     end if
 
@@ -130,9 +143,10 @@ sub onSeriesCategoriesResult(result as object)
     m.catalogTimeoutTimer.control = "stop"
 
     if result.success = true
+        SaveSeriesCategoriesCache(result.data)
         m.seriesCatalogScreen.callFunc("setCategories", result.data)
     else
-        m.seriesCatalogScreen.callFunc("showError", result.message)
+        m.seriesCatalogScreen.callFunc("showError", RetryMessage(result.message, "categorias"))
     end if
 end sub
 
@@ -142,10 +156,15 @@ sub onSeriesResult(result as object)
     m.catalogTimeoutTimer.control = "stop"
     m.seriesCatalogScreen.loading = false
     if result.success = true
+        if PxtTrim(result.category_id) = ""
+            SaveSeriesAllCache(result.data)
+        else
+            SaveSeriesCategoryCache(result.category_id, result.data)
+        end if
         m.seriesCatalogScreen.series = result.data
         m.seriesCatalogScreen.message = ""
     else
-        m.seriesCatalogScreen.message = result.message
+        m.seriesCatalogScreen.message = RetryMessage(SeriesLoadErrorMessage(result), "series")
     end if
 end sub
 
@@ -158,21 +177,39 @@ sub onCatalogTimeout()
     else if m.catalogLoading
         m.catalogLoading = false
         m.seriesCatalogScreen.loading = false
-        m.seriesCatalogScreen.message = "Tempo de conexao esgotado."
-        PRINT "GET_SERIES_ERROR"
+        m.seriesCatalogScreen.message = "Tempo esgotado ao carregar series." + Chr(10) + "Pressione OK para tentar novamente."
+        PRINT "GET_SERIES_TIMEOUT"
     end if
 end sub
 
 sub onCategorySelected(event as object)
     if m.catalogLoading or m.loadingCategories then return
     cat = event.getData()
+    if cat = invalid then return
+    m.pendingSeriesCategory = cat
+    categoryId = PxtTrim(cat.category_id)
+
+    cachedSeries = invalid
+    if categoryId = "all" or categoryId = ""
+        cachedSeries = LoadSeriesAllCache()
+    else
+        cachedSeries = LoadSeriesCategoryCache(categoryId)
+    end if
+    if cachedSeries <> invalid
+        m.seriesCatalogScreen.series = cachedSeries
+        m.seriesCatalogScreen.message = ""
+        return
+    end if
+
     m.catalogLoading = true
     m.seriesCatalogScreen.loading = true
     m.seriesCatalogScreen.message = "Carregando series..."
     m.catalogTimeoutTimer.control = "stop"
-    m.catalogTimeoutTimer.duration = 20
+    m.catalogTimeoutTimer.duration = 60
     m.catalogTimeoutTimer.control = "start"
-    m.xtreamService.callFunc("getSeries", { account: m.credentials, category_id: cat.category_id })
+    apiCategoryId = categoryId
+    if apiCategoryId = "all" then apiCategoryId = ""
+    m.xtreamService.callFunc("getSeries", { account: m.account, category_id: apiCategoryId })
 end sub
 
 sub onLoginBackRequested()
@@ -184,5 +221,16 @@ sub onCatalogBackRequested()
     m.loadingCategories = false
     m.catalogLoading = false
     m.catalogTimeoutTimer.control = "stop"
-    showLogin()
+    m.top.getScene().close = true
 end sub
+
+function SeriesLoadErrorMessage(result as dynamic) as string
+    if result <> invalid and result.code = "timeout" then return "Tempo esgotado ao carregar series."
+    return "Nao foi possivel carregar series."
+end function
+
+function RetryMessage(message as dynamic, contentName as string) as string
+    text = PxtTrim(message)
+    if text = "" then text = "Nao foi possivel carregar " + contentName + "."
+    return text + Chr(10) + "Pressione OK para tentar novamente."
+end function

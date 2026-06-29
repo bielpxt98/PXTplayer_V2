@@ -76,7 +76,8 @@ end sub
 
 sub getSeriesRequest(request as object)
     params = invalid
-    if PxtTrim(request.category_id) <> "" then params = { category_id: PxtTrim(request.category_id) }
+    categoryId = PxtTrim(request.category_id)
+    if categoryId <> "" and categoryId <> "all" then params = { category_id: categoryId }
     json = fetchJson(request, "get_series", params)
     if json = invalid then return
     if Type(json) <> "roArray"
@@ -158,16 +159,20 @@ function requestNameForAction(action as string) as string
 end function
 
 function networkMessage(action as string) as string
+    if action = "get_series" then return "Nao foi possivel carregar series."
+    if action = "get_series_categories" then return "Nao foi possivel carregar categorias."
     return "Não foi possível conectar ao servidor."
 end function
 
 function timeoutMessage(action as string) as string
     if action = "get_series_categories" then return "Tempo esgotado ao carregar categorias."
+    if action = "get_series" then return "Tempo esgotado ao carregar series."
     return "Tempo de conexão esgotado. Verifique o servidor."
 end function
 
 function requestTimeoutMs(action as string) as integer
     if action = "get_series_categories" then return 30000
+    if action = "get_series" then return 60000
     return 15000
 end function
 

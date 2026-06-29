@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="SeriesGridItem" extends="Group">
+  <interface>
+    <field id="itemContent" type="node" onChange="onItemContentChanged" />
+    <field id="focusPercent" type="float" onChange="onFocusChanged" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/SeriesGridItem.brs" />
+  <children>
+    <Rectangle id="focusBox" width="220" height="330" color="0x2A73D9FF" visible="false" />
+    <Poster id="poster" translation="[8,8]" width="204" height="260" loadDisplayMode="scaleToFill" />
+    <Rectangle id="placeholder" translation="[8,8]" width="204" height="260" color="0x102C55FF" visible="true" />
+    <Label id="title" translation="[8,276]" width="204" height="48" wrap="true" horizAlign="center" font="font:SmallSystemFont" color="0xFFFFFFFF" />
+  </children>
+</component>

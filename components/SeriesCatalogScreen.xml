@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="SeriesCatalogScreen" extends="Group">
+  <interface>
+    <field id="categories" type="array" onChange="onCategoriesChanged" />
+    <field id="series" type="array" onChange="onSeriesChanged" />
+    <field id="loading" type="boolean" onChange="onLoadingChanged" />
+    <field id="message" type="string" onChange="onMessageChanged" />
+    <field id="categorySelected" type="assocarray" alwaysNotify="true" />
+    <field id="seriesSelected" type="assocarray" alwaysNotify="true" />
+    <field id="backRequested" type="boolean" alwaysNotify="true" />
+    <function name="setCatalogFocus" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/SeriesCatalogScreen.brs" />
+  <children>
+    <Rectangle width="1920" height="1080" color="0x071A33FF" />
+    <Label text="SERIES" translation="[70,40]" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+    <Label text="Categorias" translation="[70,120]" font="font:MediumBoldSystemFont" color="0xBBD6FFFF" />
+    <MarkupList id="categoryList" translation="[70,170]" itemComponentName="EpisodeListItem" itemSize="[390,56]" numRows="12" />
+    <Label text="Catalogo" translation="[520,120]" font="font:MediumBoldSystemFont" color="0xBBD6FFFF" />
+    <MarkupGrid id="seriesGrid" translation="[520,170]" itemComponentName="SeriesGridItem" itemSize="[230,340]" numColumns="5" numRows="2" />
+    <BusySpinner id="spinner" translation="[940,920]" visible="false" />
+    <Label id="messageLabel" translation="[520,920]" width="1240" horizAlign="center" font="font:MediumSystemFont" color="0xFFD36EFF" />
+  </children>
+</component>

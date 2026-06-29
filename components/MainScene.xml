@@ -5,7 +5,8 @@
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
     <LoginScreen id="loginScreen" />
-    <LoginSuccessScreen id="successScreen" visible="false" />
+    <SeriesCatalogScreen id="seriesCatalogScreen" visible="false" />
+    <SeriesDetailScreen id="seriesDetailScreen" visible="false" />
     <XtreamService id="xtreamService" />
   </children>
 </component>

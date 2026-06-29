@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="SeriesCatalogScreen" extends="Group">
+  <interface>
+    <field id="account" type="assocarray" />
+    <field id="service" type="node" />
+    <field id="backToLogin" type="boolean" alwaysNotify="true" />
+    <function name="loadCategories" />
+  </interface>
+  <children>
+    <Rectangle width="1280" height="720" color="0x101318ff" />
+    <Label id="title" text="PXT PLAYER" width="1280" horizAlign="center" translation="[0,24]" font="font:LargeBoldSystemFont" />
+    <Label id="subtitle" text="SERIES" width="1280" horizAlign="center" translation="[0,68]" font="font:MediumBoldSystemFont" />
+    <Rectangle translation="[50,116]" width="1180" height="2" color="0x38404aff" />
+    <Rectangle translation="[50,120]" width="300" height="550" color="0x161b22ff" />
+    <Rectangle translation="[352,120]" width="2" height="550" color="0x38404aff" />
+    <Label text="CATEGORIAS" translation="[70,140]" font="font:MediumBoldSystemFont" />
+    <Label text="SERIES" translation="[380,140]" font="font:MediumBoldSystemFont" />
+    <MarkupList id="categoryList" translation="[70,190]" itemComponentName="CategoryListItem" itemSize="[250,42]" numRows="9" drawFocusFeedback="true" />
+    <MarkupGrid id="seriesGrid" translation="[380,190]" itemComponentName="SeriesGridItem" itemSize="[190,245]" numColumns="4" numRows="2" drawFocusFeedback="false" />
+    <BusySpinner id="spinner" translation="[625,345]" visible="false" control="stop" />
+    <Label id="messageLabel" translation="[380,610]" width="780" height="44" wrap="true" />
+    <Label text="OK: CARREGAR" translation="[70,610]" font="font:SmallSystemFont" />
+  </children>
+  <script type="text/brightscript" uri="pkg:/components/SeriesCatalogScreen.brs" />
+</component>
+
+<component name="CategoryListItem" extends="Group">
+  <interface>
+    <field id="itemContent" type="node" onChange="onContentChanged" />
+    <field id="focusPercent" type="float" onChange="onFocusChanged" />
+  </interface>
+  <children>
+    <Rectangle id="focusRect" width="250" height="38" color="0x2f81f7ff" opacity="0" />
+    <Label id="nameLabel" translation="[10,7]" width="230" height="30" font="font:SmallSystemFont" />
+  </children>
+  <script type="text/brightscript"><![CDATA[
+    sub init()
+      m.focusRect = m.top.findNode("focusRect")
+      m.nameLabel = m.top.findNode("nameLabel")
+    end sub
+    sub onContentChanged()
+      if m.top.itemContent <> invalid then m.nameLabel.text = m.top.itemContent.title
+    end sub
+    sub onFocusChanged()
+      if m.top.focusPercent > 0.5 then m.focusRect.opacity = 1 else m.focusRect.opacity = 0
+    end sub
+  ]]></script>
+</component>

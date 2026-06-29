@@ -41,9 +41,9 @@ sub connectRequest(request as object)
     auth = invalid
     if Type(json) = "roAssociativeArray" then auth = json.user_info
     if Type(auth) = "roAssociativeArray" and auth.auth <> invalid and auth.auth.ToStr() = "1"
-        m.top.result = { success: true, action: "connect", account: { dns: NormalizeDns(request.dns), username: PxtTrim(request.username), password: PxtTrim(request.password) } }
+        publishResult({ success: true, action: "connect", account: { dns: NormalizeDns(request.dns), username: PxtTrim(request.username), password: PxtTrim(request.password) } })
     else
-        m.top.result = { success: false, action: "connect", code: "invalid_login", message: "Login inválido. Verifique usuário e senha." }
+        publishResult({ success: false, action: "connect", code: "invalid_login", message: "Login inválido. Verifique usuário e senha." })
     end if
 end sub
 
@@ -51,10 +51,10 @@ sub getSeriesCategoriesRequest(request as object)
     json = fetchJson(request, "get_series_categories", invalid)
     if json = invalid then return
     if Type(json) <> "roArray"
-        m.top.result = { success: false, action: "get_series_categories", code: "invalid_response", message: "O servidor retornou categorias invalidas." }
+        publishResult({ success: false, action: "get_series_categories", code: "invalid_response", error: "O servidor retornou categorias invalidas.", message: "O servidor retornou categorias invalidas." })
         return
     end if
-    m.top.result = { success: true, action: "get_series_categories", categories: json }
+    publishResult({ success: true, action: "get_series_categories", categories: json })
 end sub
 
 sub getSeriesRequest(request as object)
@@ -63,16 +63,27 @@ sub getSeriesRequest(request as object)
     json = fetchJson(request, "get_series", params)
     if json = invalid then return
     if Type(json) <> "roArray"
-        m.top.result = { success: false, action: "get_series", code: "invalid_response", message: "O servidor retornou series invalidas." }
+        publishResult({ success: false, action: "get_series", code: "invalid_response", error: "O servidor retornou series invalidas.", message: "O servidor retornou series invalidas." })
         return
     end if
-    m.top.result = { success: true, action: "get_series", series: json, category_id: PxtTrim(request.category_id) }
+    publishResult({ success: true, action: "get_series", series: json, category_id: PxtTrim(request.category_id) })
+end sub
+
+sub publishResult(result as object)
+    if result = invalid then return
+    if result.action = "connect"
+        m.top.connectResult = result
+    else if result.action = "get_series_categories"
+        m.top.categoriesResult = result
+    else if result.action = "get_series"
+        m.top.seriesResult = result
+    end if
 end sub
 
 function fetchJson(request as object, action as string, params as dynamic) as dynamic
     dns = NormalizeDns(request.dns)
     if dns = ""
-        m.top.result = { success: false, action: action, code: "invalid_response", message: "O servidor retornou uma resposta inválida." }
+        publishResult({ success: false, action: action, code: "invalid_response", error: "O servidor retornou uma resposta inválida.", message: "O servidor retornou uma resposta inválida." })
         return invalid
     end if
 
@@ -95,32 +106,32 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
     transfer.SetMessagePort(port)
 
     if not transfer.AsyncGetToString()
-        m.top.result = { success: false, action: action, code: "network", message: networkMessage(action) }
+        publishResult({ success: false, action: action, code: "network", error: networkMessage(action), message: networkMessage(action) })
         return invalid
     end if
 
     msg = wait(15000, port)
     if msg = invalid
         transfer.AsyncCancel()
-        m.top.result = { success: false, action: action, code: "timeout", message: timeoutMessage(action) }
+        publishResult({ success: false, action: action, code: "timeout", error: timeoutMessage(action), message: timeoutMessage(action) })
         return invalid
     end if
 
     statusCode = msg.GetResponseCode()
     if statusCode < 200 or statusCode >= 300
-        m.top.result = { success: false, action: action, code: "network", message: networkMessage(action) }
+        publishResult({ success: false, action: action, code: "network", error: networkMessage(action), message: networkMessage(action) })
         return invalid
     end if
 
     body = msg.GetString()
     if body = invalid or body.Trim() = ""
-        m.top.result = { success: false, action: action, code: "invalid_json", message: invalidMessage(action) }
+        publishResult({ success: false, action: action, code: "invalid_json", error: invalidMessage(action), message: invalidMessage(action) })
         return invalid
     end if
 
     json = ParseJson(body)
     if json = invalid
-        m.top.result = { success: false, action: action, code: "invalid_json", message: invalidMessage(action) }
+        publishResult({ success: false, action: action, code: "invalid_json", error: invalidMessage(action), message: invalidMessage(action) })
         return invalid
     end if
 

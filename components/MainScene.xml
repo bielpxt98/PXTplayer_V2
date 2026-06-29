@@ -2,6 +2,7 @@
 <component name="MainScene" extends="Scene">
   <children>
     <LoginScreen id="loginScreen" />
+    <HomeScreen id="homeScreen" visible="false" />
     <SeriesCatalogScreen id="seriesCatalogScreen" visible="false" />
     <XtreamService id="xtreamService" />
     <Timer id="catalogTimeoutTimer" duration="20" repeat="false" />

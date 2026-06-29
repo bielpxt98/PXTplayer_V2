@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="SeriesCatalogScreen" extends="Group">
   <interface>
-    <field id="account" type="assocarray" />
+    <field id="account" type="assocarray" alwaysNotify="true" />
     <field id="categories" type="array" onChange="onCategoriesChanged" />
     <field id="series" type="array" onChange="onSeriesChanged" />
     <field id="loading" type="boolean" onChange="onLoadingChanged" />

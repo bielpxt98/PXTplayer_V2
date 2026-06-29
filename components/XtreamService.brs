@@ -3,7 +3,10 @@ sub init()
 end sub
 
 function connect(account as object) as void
-    if account = invalid then return
+    if account = invalid
+        publishResult({ request: "connect", success: false, code: "invalid_request", message: "Usuario ou senha invalidos." })
+        return
+    end if
     m.top.action = "connect"
     m.top.dns = account.dns
     m.top.username = account.username
@@ -13,7 +16,10 @@ function connect(account as object) as void
 end function
 
 function getSeriesCategories(account as object) as void
-    if account = invalid then return
+    if account = invalid
+        publishResult({ request: "getSeriesCategories", success: false, code: "invalid_request", message: "Nao foi possivel carregar categorias." })
+        return
+    end if
     m.top.action = "getSeriesCategories"
     m.top.dns = account.dns
     m.top.username = account.username
@@ -23,7 +29,10 @@ function getSeriesCategories(account as object) as void
 end function
 
 function getSeries(options as object) as void
-    if options = invalid or options.account = invalid then return
+    if options = invalid or options.account = invalid
+        publishResult({ request: "getSeries", success: false, code: "invalid_request", message: "Nao foi possivel carregar series." })
+        return
+    end if
     m.top.action = "getSeries"
     m.top.dns = options.account.dns
     m.top.username = options.account.username
@@ -39,7 +48,10 @@ sub runRequest()
     if action <> "" then
         request = { action: action, dns: m.top.dns, username: m.top.username, password: m.top.password, category_id: m.top.category_id }
     end if
-    if request = invalid then return
+    if request = invalid
+        publishResult({ request: "unknown", success: false, code: "invalid_request", message: "Requisicao invalida." })
+        return
+    end if
 
     action = PxtTrim(request.action)
     if action = "connect"
@@ -48,6 +60,8 @@ sub runRequest()
         getSeriesCategoriesRequest(request)
     else if action = "getSeries"
         getSeriesRequest(request)
+    else
+        publishResult({ request: action, success: false, code: "invalid_request", message: "Requisicao invalida." })
     end if
 end sub
 

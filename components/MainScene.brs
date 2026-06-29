@@ -1,11 +1,15 @@
 sub init()
     m.loginScreen = m.top.findNode("loginScreen")
+    m.homeScreen = m.top.findNode("homeScreen")
     m.seriesCatalogScreen = m.top.findNode("seriesCatalogScreen")
     m.xtreamService = m.top.findNode("xtreamService")
     m.catalogTimeoutTimer = m.top.findNode("catalogTimeoutTimer")
 
     m.loginScreen.observeField("submit", "onLoginSubmit")
     m.loginScreen.observeField("backRequested", "onLoginBackRequested")
+    m.homeScreen.observeField("seriesSelected", "onHomeSeriesSelected")
+    m.homeScreen.observeField("accountSelected", "onHomeAccountSelected")
+    m.homeScreen.observeField("backRequested", "onHomeBackRequested")
     m.seriesCatalogScreen.observeField("categorySelected", "onCategorySelected")
     m.seriesCatalogScreen.observeField("backRequested", "onCatalogBackRequested")
     m.seriesCatalogScreen.observeField("loadCategoriesRequested", "onLoadCategoriesRequested")
@@ -21,7 +25,7 @@ sub init()
 
     savedAccount = LoadPlaylistAccount()
     if HasValidPlaylistAccount(savedAccount)
-        openSeriesCatalog(savedAccount)
+        showHome(savedAccount)
     else
         m.loginScreen.account = savedAccount
         showLogin()
@@ -32,14 +36,31 @@ sub showLogin()
     m.loadingCategories = false
     m.catalogLoading = false
     m.catalogTimeoutTimer.control = "stop"
+    m.homeScreen.visible = false
     m.seriesCatalogScreen.visible = false
     m.loginScreen.visible = true
     m.loginScreen.setFocus(true)
 end sub
 
+sub showHome(account as object)
+    m.loadingCategories = false
+    m.catalogLoading = false
+    m.catalogTimeoutTimer.control = "stop"
+    m.loginScreen.loading = false
+    m.loginScreen.visible = false
+    m.seriesCatalogScreen.visible = false
+    m.homeScreen.account = account
+    m.homeScreen.visible = true
+    m.homeScreen.callFunc("setHomeFocus")
+    m.account = account
+    m.credentials = account
+    PRINT "HOME_SCREEN_OPENED"
+end sub
+
 sub openSeriesCatalog(account as object)
     m.loginScreen.loading = false
     m.loginScreen.visible = false
+    m.homeScreen.visible = false
     m.seriesCatalogScreen.callFunc("resetForLoading")
     m.seriesCatalogScreen.message = "Carregando categorias..."
     m.seriesCatalogScreen.loading = true
@@ -99,7 +120,7 @@ sub onConnectResult(result as object)
         m.credentials = result.account
         m.account = result.account
         SavePlaylistAccount(m.credentials.dns, m.credentials.username, m.credentials.password)
-        openSeriesCatalog(m.credentials)
+        showHome(m.credentials)
     else
         m.loginScreen.loading = false
         m.loginScreen.message = "Usuario ou senha invalidos."
@@ -152,6 +173,7 @@ end sub
 
 sub onSeriesResult(result as object)
     if result = invalid then return
+    if not m.catalogLoading then return
     m.catalogLoading = false
     m.catalogTimeoutTimer.control = "stop"
     m.seriesCatalogScreen.loading = false
@@ -209,7 +231,24 @@ sub onCategorySelected(event as object)
     m.catalogTimeoutTimer.control = "start"
     apiCategoryId = categoryId
     if apiCategoryId = "all" then apiCategoryId = ""
+    m.xtreamService.control = "STOP"
     m.xtreamService.callFunc("getSeries", { account: m.account, category_id: apiCategoryId })
+end sub
+
+sub onHomeSeriesSelected()
+    if not HasValidPlaylistAccount(m.account) then
+        showLogin()
+        return
+    end if
+    openSeriesCatalog(m.account)
+end sub
+
+sub onHomeAccountSelected()
+    ' Dados basicos sao exibidos pela propria HomeScreen.
+end sub
+
+sub onHomeBackRequested()
+    m.top.getScene().close = true
 end sub
 
 sub onLoginBackRequested()
@@ -221,7 +260,7 @@ sub onCatalogBackRequested()
     m.loadingCategories = false
     m.catalogLoading = false
     m.catalogTimeoutTimer.control = "stop"
-    m.top.getScene().close = true
+    showHome(m.account)
 end sub
 
 function SeriesLoadErrorMessage(result as dynamic) as string

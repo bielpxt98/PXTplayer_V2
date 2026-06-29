@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="CategoryListItem" extends="Group">
+  <interface>
+    <field id="itemContent" type="node" onChange="onContentChanged" />
+    <field id="focusPercent" type="float" onChange="onFocusChanged" />
+  </interface>
+  <children>
+    <Rectangle id="focusRect" width="250" height="38" color="0x2f81f7ff" opacity="0" />
+    <Label id="nameLabel" translation="[10,7]" width="230" height="30" font="font:SmallSystemFont" />
+  </children>
+  <script type="text/brightscript"><![CDATA[
+    sub init()
+      m.focusRect = m.top.findNode("focusRect")
+      m.nameLabel = m.top.findNode("nameLabel")
+    end sub
+
+    sub onContentChanged()
+      if m.top.itemContent <> invalid then m.nameLabel.text = m.top.itemContent.title
+    end sub
+
+    sub onFocusChanged()
+      if m.top.focusPercent > 0.5 then m.focusRect.opacity = 1 else m.focusRect.opacity = 0
+    end sub
+  ]]></script>
+</component>

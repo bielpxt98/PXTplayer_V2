@@ -8,7 +8,9 @@
     <field id="message" type="string" onChange="onMessageChanged" />
     <field id="categorySelected" type="assocarray" alwaysNotify="true" />
     <field id="backRequested" type="boolean" alwaysNotify="true" />
+    <field id="loadCategoriesRequested" type="assocarray" alwaysNotify="true" />
     <function name="setCatalogFocus" />
+    <function name="resetForLoading" />
   </interface>
   <script type="text/brightscript" uri="pkg:/components/SeriesCatalogScreen.brs" />
   <children>

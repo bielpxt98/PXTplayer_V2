@@ -43,7 +43,7 @@ sub connectRequest(request as object)
     if Type(auth) = "roAssociativeArray" and auth.auth <> invalid and auth.auth.ToStr() = "1"
         publishResult({ success: true, action: "connect", account: { dns: NormalizeDns(request.dns), username: PxtTrim(request.username), password: PxtTrim(request.password) } })
     else
-        publishResult({ success: false, action: "connect", code: "invalid_login", message: "Login inválido. Verifique usuário e senha." })
+        publishResult({ success: false, action: "connect", code: "invalid_login", message: "Usuario ou senha invalidos." })
     end if
 end sub
 
@@ -100,7 +100,8 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
     transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
     transfer.InitClientCertificates()
     transfer.SetRequest("GET")
-    transfer.SetMinimumTransferRate(1, 15)
+    timeoutMs = requestTimeoutMs(action)
+    transfer.SetMinimumTransferRate(1, timeoutMs / 1000)
     transfer.RetainBodyOnError(false)
     port = CreateObject("roMessagePort")
     transfer.SetMessagePort(port)
@@ -110,7 +111,7 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
         return invalid
     end if
 
-    msg = wait(15000, port)
+    msg = wait(timeoutMs, port)
     if msg = invalid
         transfer.AsyncCancel()
         publishResult({ success: false, action: action, code: "timeout", error: timeoutMessage(action), message: timeoutMessage(action) })
@@ -143,7 +144,13 @@ function networkMessage(action as string) as string
 end function
 
 function timeoutMessage(action as string) as string
+    if action = "get_series_categories" then return "Tempo esgotado ao carregar categorias."
     return "Tempo de conexão esgotado. Verifique o servidor."
+end function
+
+function requestTimeoutMs(action as string) as integer
+    if action = "get_series_categories" then return 30000
+    return 15000
 end function
 
 function invalidMessage(action as string) as string

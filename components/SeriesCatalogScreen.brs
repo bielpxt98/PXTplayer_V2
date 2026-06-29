@@ -5,12 +5,15 @@ sub init()
     m.messageLabel = m.top.findNode("messageLabel")
     m.focusArea = "categories"
     m.loading = false
+    m.categoriesLoaded = false
 end sub
 
 sub onAccountChanged()
     m.account = m.top.account
+    m.top.loadCategoriesRequested = m.account
 end sub
 sub onCategoriesChanged()
+    m.categoriesLoaded = true
     root = CreateObject("roSGNode", "ContentNode")
     all = root.createChild("ContentNode") : all.title = "TODAS" : all.category_id = ""
     for each cat in m.top.categories
@@ -37,12 +40,23 @@ end sub
 sub setCatalogFocus()
     if m.focusArea = "series" then m.seriesGrid.setFocus(true) else m.categoryList.setFocus(true)
 end sub
+
+sub resetForLoading()
+    m.categoriesLoaded = false
+    m.focusArea = "categories"
+    m.categoryList.content = CreateObject("roSGNode", "ContentNode")
+    m.seriesGrid.content = CreateObject("roSGNode", "ContentNode")
+end sub
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
     if m.loading then return true
     if key = "right" and m.focusArea = "categories" then m.focusArea = "series" : m.seriesGrid.setFocus(true) : return true
     if key = "left" and m.focusArea = "series" then m.focusArea = "categories" : m.categoryList.setFocus(true) : return true
     if key = "OK"
+        if not m.categoriesLoaded or m.categoryList.content = invalid or m.categoryList.content.getChildCount() = 0
+            m.top.loadCategoriesRequested = m.account
+            return true
+        end if
         if m.focusArea = "categories"
             item = focusedNode(m.categoryList)
             if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: item.title }

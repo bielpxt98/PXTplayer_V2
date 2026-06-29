@@ -188,15 +188,17 @@ sub onLiveStreamsResult(result as object)
     m.seriesCatalogScreen.loading = false
     if result.success = true
         PRINT "CANAIS RECEBIDOS: " + result.data.Count().ToStr()
-        m.seriesCatalogScreen.series = result.data
-        if result.data.Count() = 0
+        channels = LimitValidLiveChannels(result.data, 50)
+        PRINT "CANAIS RENDERIZADOS: " + channels.Count().ToStr()
+        m.seriesCatalogScreen.series = channels
+        if channels.Count() = 0
             m.seriesCatalogScreen.message = "Nenhum canal encontrado nesta categoria."
         else
-            m.seriesCatalogScreen.message = "Canais recebidos: " + result.data.Count().ToStr()
+            m.seriesCatalogScreen.message = "Canais recebidos: " + channels.Count().ToStr()
         end if
     else
-        PRINT "ERRO AO CARREGAR LIVE: " + PxtTrim(result.message)
-        m.seriesCatalogScreen.message = LiveLoadErrorMessage()
+        PRINT "ERRO AO BUSCAR CANAIS: " + PxtTrim(result.message)
+        m.seriesCatalogScreen.message = "Erro ao carregar canais desta categoria"
     end if
 end sub
 
@@ -252,8 +254,8 @@ sub onCatalogTimeout()
     else if m.catalogLoading
         m.catalogLoading = false
         m.seriesCatalogScreen.loading = false
-        m.seriesCatalogScreen.message = LiveLoadErrorMessage()
-        PRINT "ERRO AO CARREGAR LIVE: timeout"
+        m.seriesCatalogScreen.message = "Erro ao carregar canais desta categoria"
+        PRINT "TIMEOUT AO BUSCAR CANAIS"
     end if
 end sub
 
@@ -261,15 +263,17 @@ sub onCategorySelected(event as object)
     if m.catalogLoading or m.loadingCategories then return
     cat = event.getData()
     if cat = invalid then return
-    PRINT "ABRINDO CATEGORIA LIVE: " + PxtTrim(cat.name) + "/" + PxtTrim(cat.category_id)
+    PRINT "CATEGORIA SELECIONADA: " + PxtTrim(cat.name) + "/" + PxtTrim(cat.category_id)
     categoryId = PxtTrim(cat.category_id)
 
     m.catalogLoading = true
+    m.seriesCatalogScreen.series = []
     m.seriesCatalogScreen.loading = true
     m.seriesCatalogScreen.message = "Carregando canais de TV ao vivo..."
     m.catalogTimeoutTimer.control = "stop"
-    m.catalogTimeoutTimer.duration = 30
+    m.catalogTimeoutTimer.duration = 15
     m.catalogTimeoutTimer.control = "start"
+    PRINT "BUSCANDO CANAIS DA CATEGORIA"
     m.xtreamService.control = "STOP"
     m.xtreamService.callFunc("getLiveStreams", { account: m.account, category_id: categoryId })
 end sub
@@ -301,6 +305,22 @@ sub onCatalogBackRequested()
     m.catalogTimeoutTimer.control = "stop"
     showHome(m.account)
 end sub
+
+function LimitValidLiveChannels(channels as dynamic, maxItems as integer) as object
+    validChannels = []
+    if channels = invalid then return validChannels
+    for each channel in channels
+        if validChannels.Count() >= maxItems then exit for
+        if channel <> invalid
+            channelName = PxtTrim(channel.name)
+            streamId = PxtTrim(channel.stream_id)
+            if channelName <> "" and streamId <> ""
+                validChannels.Push(channel)
+            end if
+        end if
+    end for
+    return validChannels
+end function
 
 function CategoryLoadErrorMessage(result as dynamic) as string
     if result <> invalid and result.code = "timeout" then return "Tempo esgotado ao carregar categorias." + Chr(10) + "Pressione OK para tentar novamente."

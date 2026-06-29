@@ -131,13 +131,13 @@ end sub
 
 sub getLiveStreamsRequest(request as object)
     categoryId = PxtTrim(request.category_id)
-    PRINT "XTREAM_LIVE_STREAMS_START category=" + categoryId
+    PRINT "BUSCANDO CANAIS DA CATEGORIA"
     params = invalid
     if categoryId <> "" and categoryId <> "all" then params = { category_id: categoryId }
     json = fetchJson(request, "get_live_streams", params)
     if json = invalid then return
     if Type(json) <> "roArray"
-        publishResult({ request: "getLiveStreams", success: false, code: "invalid_response", error: LiveLoadErrorMessage(), message: LiveLoadErrorMessage(), category_id: categoryId })
+        publishResult({ request: "getLiveStreams", success: false, code: "invalid_response", error: "Erro ao carregar canais desta categoria", message: "Erro ao carregar canais desta categoria", category_id: categoryId })
         return
     end if
     PRINT "CANAIS RECEBIDOS: " + json.Count().ToStr()
@@ -213,7 +213,11 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
     msg = wait(timeoutMs, port)
     if msg = invalid
         transfer.AsyncCancel()
-        PRINT "XTREAM_REQUEST_TIMEOUT action=" + action
+        if action = "get_live_streams"
+            PRINT "TIMEOUT AO BUSCAR CANAIS"
+        else
+            PRINT "XTREAM_REQUEST_TIMEOUT action=" + action
+        end if
         publishResult({ success: false, request: requestNameForAction(action), code: "timeout", error: timeoutMessage(action), message: timeoutMessage(action) })
         return invalid
     end if
@@ -251,14 +255,16 @@ function requestNameForAction(action as string) as string
 end function
 
 function networkMessage(action as string) as string
-    if action = "get_live_categories" or action = "get_live_streams" then return LiveLoadErrorMessage()
+    if action = "get_live_streams" then return "Erro ao carregar canais desta categoria"
+    if action = "get_live_categories" then return LiveLoadErrorMessage()
     if action = "get_series" then return "Nao foi possivel carregar series."
     if action = "get_series_categories" then return "Nao foi possivel carregar categorias."
     return "Não foi possível conectar ao servidor."
 end function
 
 function timeoutMessage(action as string) as string
-    if action = "get_live_categories" or action = "get_live_streams" then return LiveLoadErrorMessage()
+    if action = "get_live_streams" then return "Erro ao carregar canais desta categoria"
+    if action = "get_live_categories" then return LiveLoadErrorMessage()
     if action = "get_series_categories" then return "Tempo esgotado ao carregar categorias."
     if action = "get_series" then return "Tempo esgotado ao carregar series."
     return "Tempo de conexão esgotado. Verifique o servidor."
@@ -266,14 +272,15 @@ end function
 
 function requestTimeoutMs(action as string) as integer
     if action = "get_live_categories" then return 30000
-    if action = "get_live_streams" then return 30000
+    if action = "get_live_streams" then return 15000
     if action = "get_series_categories" then return 30000
     if action = "get_series" then return 60000
     return 15000
 end function
 
 function invalidMessage(action as string) as string
-    if action = "get_live_categories" or action = "get_live_streams" then return LiveLoadErrorMessage()
+    if action = "get_live_streams" then return "Erro ao carregar canais desta categoria"
+    if action = "get_live_categories" then return LiveLoadErrorMessage()
     if action = "get_series_categories" then return "O servidor retornou categorias invalidas."
     if action = "get_series" then return "O servidor retornou series invalidas."
     return "O servidor retornou uma resposta inválida."

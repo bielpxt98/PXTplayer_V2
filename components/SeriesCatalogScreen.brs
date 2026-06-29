@@ -46,13 +46,6 @@ sub setCategories(categories as object)
     if categories <> invalid then
         for each category in categories
             if category.category_id <> invalid and category.category_name <> invalid then
-                if validCount = 0
-                    m.categories.Push({
-                        id: "all",
-                        name: "TODAS",
-                        label: "TODAS (id: all)"
-                    })
-                end if
                 validCount = validCount + 1
                 categoryId = category.category_id.ToStr()
                 categoryName = category.category_name.ToStr()
@@ -92,12 +85,26 @@ sub onCategoriesChanged()
 end sub
 sub onSeriesChanged()
     root = CreateObject("roSGNode", "ContentNode")
+    renderedCount = 0
     for each s in m.top.series
-        n = root.createChild("ContentNode")
-        streamId = safe(s.stream_id, safe(s.series_id, ""))
-        n.name = safe(s.name, "Canal") : n.title = n.name + " (id: " + streamId + ")" : n.cover = safe(s.stream_icon, safe(s.cover, "")) : n.stream_icon = n.cover : n.stream_id = streamId : n.category_id = safe(s.category_id, "")
+        if renderedCount >= 50 then exit for
+        if s <> invalid
+            channelName = safe(s.name, "")
+            streamId = safe(s.stream_id, "")
+            if channelName <> "" and streamId <> ""
+                n = root.createChild("ContentNode")
+                n.name = channelName
+                n.title = channelName + " (id: " + streamId + ")"
+                n.cover = safe(s.stream_icon, safe(s.cover, ""))
+                n.stream_icon = n.cover
+                n.stream_id = streamId
+                n.category_id = safe(s.category_id, "")
+                renderedCount = renderedCount + 1
+            end if
+        end if
     end for
     m.seriesGrid.content = root
+    PRINT "CANAIS RENDERIZADOS: " + renderedCount.ToStr()
 end sub
 sub onLoadingChanged()
     m.loading = m.top.loading

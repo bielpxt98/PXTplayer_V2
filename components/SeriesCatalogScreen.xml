@@ -7,7 +7,6 @@
     <field id="loading" type="boolean" onChange="onLoadingChanged" />
     <field id="message" type="string" onChange="onMessageChanged" />
     <field id="categorySelected" type="assocarray" alwaysNotify="true" />
-    <field id="seriesSelected" type="assocarray" alwaysNotify="true" />
     <field id="backRequested" type="boolean" alwaysNotify="true" />
     <function name="setCatalogFocus" />
   </interface>

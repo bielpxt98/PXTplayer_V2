@@ -47,15 +47,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
             item = focusedNode(m.categoryList)
             if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: item.title }
         else
-            item = focusedNode(m.seriesGrid)
-            if item <> invalid
-                selected = nodeToAa(item)
-                if safe(selected.series_id, "") = ""
-                    m.top.message = "Esta serie nao possui detalhes disponiveis."
-                else
-                    m.top.seriesSelected = selected
-                end if
-            end if
+            m.top.message = "Selecione uma categoria para carregar o catalogo."
         end if
         return true
     else if key = "back"
@@ -69,9 +61,6 @@ function focusedNode(list as object) as dynamic
     idx = list.itemFocused
     if idx < 0 or idx >= list.content.getChildCount() then return invalid
     return list.content.getChild(idx)
-end function
-function nodeToAa(n as object) as object
-    return { series_id: safe(n.series_id, ""), name: safe(n.name, n.title), cover: safe(n.cover, ""), stream_icon: safe(n.stream_icon, ""), category_id: safe(n.category_id, "") }
 end function
 function safe(v as dynamic, fallback as string) as string
     if v = invalid then return fallback

@@ -20,12 +20,6 @@ function getSeries(options as object) as void
     m.top.control = "RUN"
 end function
 
-function getSeriesInfo(options as object) as void
-    if options = invalid or options.account = invalid then return
-    m.top.request = { action: "get_series_info", dns: options.account.dns, username: options.account.username, password: options.account.password, series_id: options.series_id }
-    m.top.control = "RUN"
-end function
-
 sub runRequest()
     request = m.top.request
     if request = invalid then return
@@ -37,13 +31,11 @@ sub runRequest()
         getSeriesCategoriesRequest(request)
     else if action = "get_series"
         getSeriesRequest(request)
-    else if action = "get_series_info"
-        getSeriesInfoRequest(request)
     end if
 end sub
 
 sub connectRequest(request as object)
-    json = fetchJson(request, "", invalid)
+    json = fetchJson(request, "connect", invalid)
     if json = invalid then return
 
     auth = invalid
@@ -77,17 +69,6 @@ sub getSeriesRequest(request as object)
     m.top.result = { success: true, action: "get_series", series: json, category_id: PxtTrim(request.category_id) }
 end sub
 
-sub getSeriesInfoRequest(request as object)
-    params = { series_id: PxtTrim(request.series_id) }
-    json = fetchJson(request, "get_series_info", params)
-    if json = invalid then return
-    if Type(json) <> "roAssociativeArray"
-        m.top.result = { success: false, action: "get_series_info", code: "invalid_response", message: "O servidor retornou detalhes invalidos." }
-        return
-    end if
-    m.top.result = { success: true, action: "get_series_info", details: json, series_id: PxtTrim(request.series_id) }
-end sub
-
 function fetchJson(request as object, action as string, params as dynamic) as dynamic
     dns = NormalizeDns(request.dns)
     if dns = ""
@@ -96,7 +77,7 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
     end if
 
     url = dns + "/player_api.php?username=" + UrlEncodeParam(PxtTrim(request.username)) + "&password=" + UrlEncodeParam(PxtTrim(request.password))
-    if action <> "" then url = url + "&action=" + UrlEncodeParam(action)
+    if action <> "" and action <> "connect" then url = url + "&action=" + UrlEncodeParam(action)
     if params <> invalid
         for each k in params
             url = url + "&" + k + "=" + UrlEncodeParam(params[k])
@@ -157,6 +138,5 @@ end function
 function invalidMessage(action as string) as string
     if action = "get_series_categories" then return "O servidor retornou categorias invalidas."
     if action = "get_series" then return "O servidor retornou series invalidas."
-    if action = "get_series_info" then return "O servidor retornou detalhes invalidos."
     return "O servidor retornou uma resposta inválida."
 end function

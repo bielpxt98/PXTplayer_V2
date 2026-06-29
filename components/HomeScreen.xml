@@ -13,7 +13,7 @@
     <Rectangle width="1920" height="1080" color="0x071A33FF" />
     <Label text="PXT PLAYER" translation="[0,220]" width="1920" horizAlign="center" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
     <Rectangle id="seriesButton" translation="[760,410]" width="400" height="76" color="0x2A73D9FF" />
-    <Label text="SÉRIES" translation="[760,428]" width="400" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+    <Label text="TV AO VIVO" translation="[760,428]" width="400" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
     <Rectangle id="accountButton" translation="[760,520]" width="400" height="76" color="0x102C55FF" />
     <Label text="CONTA" translation="[760,538]" width="400" horizAlign="center" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
     <Label id="accountLabel" translation="[0,650]" width="1920" horizAlign="center" font="font:MediumSystemFont" color="0xBBD6FFFF" />

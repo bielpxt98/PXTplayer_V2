@@ -12,7 +12,7 @@ end sub
 sub onAccountChanged()
     m.account = m.top.account
     if m.account <> invalid then
-        PRINT "SERIES_ACCOUNT_RECEIVED"
+        PRINT "LIVE_ACCOUNT_RECEIVED"
         loadCategories()
     else
         showError("Conta nao encontrada.")
@@ -20,9 +20,9 @@ sub onAccountChanged()
 end sub
 
 sub loadCategories()
-    PRINT "LOAD_CATEGORIES_REQUESTED"
+    PRINT "LOAD_LIVE_CATEGORIES_REQUESTED"
     m.top.loadCategoriesRequested = true
-    showLoading("Carregando categorias...")
+    showLoading("Carregando categorias de TV ao vivo...")
 end sub
 
 sub showLoading(message as string)
@@ -49,14 +49,18 @@ sub setCategories(categories as object)
                 if validCount = 0
                     m.categories.Push({
                         id: "all",
-                        name: "TODAS"
+                        name: "TODAS",
+                        label: "TODAS (id: all)"
                     })
                 end if
                 validCount = validCount + 1
+                categoryId = category.category_id.ToStr()
+                categoryName = category.category_name.ToStr()
                 m.categories.Push({
-                    id: category.category_id.ToStr(),
-                    name: category.category_name.ToStr(),
-                    media_type: "series"
+                    id: categoryId,
+                    name: categoryName,
+                    label: categoryName + " (id: " + categoryId + ")",
+                    media_type: "live"
                 })
             end if
         end for
@@ -71,7 +75,8 @@ sub renderCategories()
     root = CreateObject("roSGNode", "ContentNode")
     for each cat in m.categories
         n = root.createChild("ContentNode")
-        n.title = safe(cat.name, "Categoria")
+        n.title = safe(cat.label, safe(cat.name, "Categoria"))
+        n.name = safe(cat.name, "Categoria")
         n.category_id = safe(cat.id, "")
     end for
     m.categoryList.content = root
@@ -80,7 +85,7 @@ sub renderCategories()
     else
         m.top.message = "Selecione uma categoria e pressione OK."
     end if
-    PRINT "SERIES_CATEGORIES_RENDERED"
+    PRINT "LIVE_CATEGORIES_RENDERED"
 end sub
 sub onCategoriesChanged()
     setCategories(m.top.categories)
@@ -89,7 +94,8 @@ sub onSeriesChanged()
     root = CreateObject("roSGNode", "ContentNode")
     for each s in m.top.series
         n = root.createChild("ContentNode")
-        n.name = safe(s.name, "Serie") : n.title = n.name : n.cover = safe(s.cover, safe(s.stream_icon, "")) : n.stream_icon = safe(s.stream_icon, n.cover) : n.series_id = safe(s.series_id, "") : n.category_id = safe(s.category_id, "")
+        streamId = safe(s.stream_id, safe(s.series_id, ""))
+        n.name = safe(s.name, "Canal") : n.title = n.name + " (id: " + streamId + ")" : n.cover = safe(s.stream_icon, safe(s.cover, "")) : n.stream_icon = n.cover : n.stream_id = streamId : n.category_id = safe(s.category_id, "")
     end for
     m.seriesGrid.content = root
 end sub
@@ -123,9 +129,9 @@ function onKeyEvent(key as string, press as boolean) as boolean
         end if
         if m.focusArea = "categories"
             item = focusedNode(m.categoryList)
-            if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: item.title, media_type: "series" }
+            if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: safe(item.name, item.title), media_type: "live" }
         else
-            m.top.message = "Selecione uma categoria para carregar o catalogo."
+            m.top.message = "Selecione uma categoria para carregar os canais."
         end if
         return true
     else if key = "back"

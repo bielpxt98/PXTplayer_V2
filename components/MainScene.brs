@@ -22,6 +22,7 @@ sub init()
     m.credentials = invalid
     m.account = invalid
     m.pendingSeriesCategory = invalid
+    m.liveTestMode = true
 
     savedAccount = LoadPlaylistAccount()
     if HasValidPlaylistAccount(savedAccount)
@@ -58,15 +59,19 @@ sub showHome(account as object)
 end sub
 
 sub openSeriesCatalog(account as object)
+    openLiveCatalog(account)
+end sub
+
+sub openLiveCatalog(account as object)
     m.loginScreen.loading = false
     m.loginScreen.visible = false
     m.homeScreen.visible = false
     m.seriesCatalogScreen.callFunc("resetForLoading")
-    m.seriesCatalogScreen.message = "Carregando categorias..."
+    m.seriesCatalogScreen.message = "Carregando categorias de TV ao vivo..."
     m.seriesCatalogScreen.loading = true
     m.seriesCatalogScreen.visible = true
     m.seriesCatalogScreen.callFunc("setCatalogFocus")
-    PRINT "SERIES_SCREEN_OPENED"
+    PRINT "LIVE_TEST_SCREEN_OPENED"
     m.account = account
     m.credentials = account
     m.seriesCatalogScreen.account = m.account
@@ -93,6 +98,7 @@ sub startConnect(credentials as object)
     m.connecting = true
     m.loginScreen.loading = true
     m.loginScreen.message = "Conectando..."
+    PRINT "LOGIN INICIADO"
     PRINT "CONNECT_STARTED dns=" + PxtTrim(credentials.dns)
     m.xtreamService.callFunc("connect", credentials)
 end sub
@@ -103,6 +109,10 @@ sub onXtreamResult()
 
     if result.request = "connect" then
         onConnectResult(result)
+    else if result.request = "getLiveCategories" then
+        onLiveCategoriesResult(result)
+    else if result.request = "getLiveStreams" then
+        onLiveStreamsResult(result)
     else if result.request = "getSeriesCategories" then
         onSeriesCategoriesResult(result)
     else if result.request = "getSeries" then
@@ -116,11 +126,12 @@ sub onConnectResult(result as object)
     m.connecting = false
 
     if result.success = true
+        PRINT "LOGIN OK"
         PRINT "CONNECT_SUCCESS"
         m.credentials = result.account
         m.account = result.account
         SavePlaylistAccount(m.credentials.dns, m.credentials.username, m.credentials.password)
-        showHome(m.credentials)
+        openLiveCatalog(m.credentials)
     else
         m.loginScreen.loading = false
         PRINT "CONNECT_ERROR code=" + PxtTrim(result.code)
@@ -138,27 +149,55 @@ sub onLoadCategoriesRequested()
         return
     end if
 
-    cachedCategories = LoadSeriesCategoriesCache()
-    if cachedCategories <> invalid
-        PRINT "CATEGORIES_LOAD_START source=cache"
-        PRINT "CATEGORIES_COUNT " + cachedCategories.Count().ToStr()
-        m.seriesCatalogScreen.callFunc("setCategories", cachedCategories)
-        return
-    end if
-
     m.seriesCatalogScreen.loading = true
-    m.seriesCatalogScreen.message = "Carregando categorias..."
+    m.seriesCatalogScreen.message = "Carregando categorias de TV ao vivo..."
     m.loadingCategories = true
     m.catalogTimeoutTimer.control = "stop"
     m.catalogTimeoutTimer.duration = 30
     m.catalogTimeoutTimer.control = "start"
-    PRINT "CATEGORIES_LOAD_START source=network"
+    PRINT "CARREGANDO CATEGORIAS LIVE"
     m.xtreamService.control = "STOP"
-    m.xtreamService.action = "getSeriesCategories"
+    m.xtreamService.action = "getLiveCategories"
     m.xtreamService.dns = m.account.dns
     m.xtreamService.username = m.account.username
     m.xtreamService.password = m.account.password
     m.xtreamService.control = "RUN"
+end sub
+
+sub onLiveCategoriesResult(result as object)
+    if result = invalid then return
+    if not m.loadingCategories then return
+
+    m.loadingCategories = false
+    m.catalogTimeoutTimer.control = "stop"
+
+    if result.success = true
+        PRINT "CATEGORIAS LIVE RECEBIDAS: " + result.data.Count().ToStr()
+        m.seriesCatalogScreen.callFunc("setCategories", result.data)
+    else
+        PRINT "ERRO AO CARREGAR LIVE: " + PxtTrim(result.message)
+        m.seriesCatalogScreen.callFunc("showError", LiveLoadErrorMessage())
+    end if
+end sub
+
+sub onLiveStreamsResult(result as object)
+    if result = invalid then return
+    if not m.catalogLoading then return
+    m.catalogLoading = false
+    m.catalogTimeoutTimer.control = "stop"
+    m.seriesCatalogScreen.loading = false
+    if result.success = true
+        PRINT "CANAIS RECEBIDOS: " + result.data.Count().ToStr()
+        m.seriesCatalogScreen.series = result.data
+        if result.data.Count() = 0
+            m.seriesCatalogScreen.message = "Nenhum canal encontrado nesta categoria."
+        else
+            m.seriesCatalogScreen.message = "Canais recebidos: " + result.data.Count().ToStr()
+        end if
+    else
+        PRINT "ERRO AO CARREGAR LIVE: " + PxtTrim(result.message)
+        m.seriesCatalogScreen.message = LiveLoadErrorMessage()
+    end if
 end sub
 
 sub onSeriesCategoriesResult(result as object)
@@ -208,13 +247,13 @@ sub onCatalogTimeout()
     if m.loadingCategories
         m.loadingCategories = false
         m.seriesCatalogScreen.loading = false
-        m.seriesCatalogScreen.message = "Tempo esgotado ao carregar categorias." + Chr(10) + "Pressione OK para tentar novamente."
-        PRINT "CATEGORIES_TIMEOUT"
+        m.seriesCatalogScreen.message = LiveLoadErrorMessage()
+        PRINT "ERRO AO CARREGAR LIVE: timeout"
     else if m.catalogLoading
         m.catalogLoading = false
         m.seriesCatalogScreen.loading = false
-        m.seriesCatalogScreen.message = "Tempo esgotado ao carregar series." + Chr(10) + "Pressione OK para tentar novamente."
-        PRINT "GET_SERIES_TIMEOUT"
+        m.seriesCatalogScreen.message = LiveLoadErrorMessage()
+        PRINT "ERRO AO CARREGAR LIVE: timeout"
     end if
 end sub
 
@@ -222,37 +261,17 @@ sub onCategorySelected(event as object)
     if m.catalogLoading or m.loadingCategories then return
     cat = event.getData()
     if cat = invalid then return
-    PRINT "CATEGORY_SELECTED id=" + PxtTrim(cat.category_id) + " name=" + PxtTrim(cat.name) + " media=series"
-    m.pendingSeriesCategory = cat
+    PRINT "ABRINDO CATEGORIA LIVE: " + PxtTrim(cat.name) + "/" + PxtTrim(cat.category_id)
     categoryId = PxtTrim(cat.category_id)
-
-    cachedSeries = invalid
-    if categoryId = "all" or categoryId = ""
-        cachedSeries = LoadSeriesAllCache()
-    else
-        cachedSeries = LoadSeriesCategoryCache(categoryId)
-    end if
-    if cachedSeries <> invalid
-        PRINT "SERIES_COUNT " + cachedSeries.Count().ToStr()
-        m.seriesCatalogScreen.series = cachedSeries
-        if cachedSeries.Count() = 0
-            m.seriesCatalogScreen.message = "Nenhum item encontrado nesta categoria."
-        else
-            m.seriesCatalogScreen.message = ""
-        end if
-        return
-    end if
 
     m.catalogLoading = true
     m.seriesCatalogScreen.loading = true
-    m.seriesCatalogScreen.message = "Carregando series..."
+    m.seriesCatalogScreen.message = "Carregando canais de TV ao vivo..."
     m.catalogTimeoutTimer.control = "stop"
-    m.catalogTimeoutTimer.duration = 60
+    m.catalogTimeoutTimer.duration = 30
     m.catalogTimeoutTimer.control = "start"
-    apiCategoryId = categoryId
-    if apiCategoryId = "all" then apiCategoryId = ""
     m.xtreamService.control = "STOP"
-    m.xtreamService.callFunc("getSeries", { account: m.account, category_id: apiCategoryId })
+    m.xtreamService.callFunc("getLiveStreams", { account: m.account, category_id: categoryId })
 end sub
 
 sub onHomeSeriesSelected()
@@ -297,4 +316,8 @@ function RetryMessage(message as dynamic, contentName as string) as string
     text = PxtTrim(message)
     if text = "" then text = "Nao foi possivel carregar " + contentName + "."
     return text + Chr(10) + "Pressione OK para tentar novamente."
+end function
+
+function LiveLoadErrorMessage() as string
+    return "Não foi possível carregar TV ao vivo. Verifique DNS, usuário, senha ou formato da lista."
 end function

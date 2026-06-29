@@ -16,7 +16,7 @@
     <Rectangle width="1920" height="1080" color="0x071A33FF" />
     <Label text="SERIES" translation="[70,40]" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
     <Label text="Categorias" translation="[70,120]" font="font:MediumBoldSystemFont" color="0xBBD6FFFF" />
-    <MarkupList id="categoryList" translation="[70,170]" itemComponentName="EpisodeListItem" itemSize="[390,56]" numRows="12" />
+    <LabelList id="categoryList" translation="[70,170]" itemSize="[390,56]" numRows="12" />
     <Label text="Catalogo" translation="[520,120]" font="font:MediumBoldSystemFont" color="0xBBD6FFFF" />
     <MarkupGrid id="seriesGrid" translation="[520,170]" itemComponentName="SeriesGridItem" itemSize="[230,340]" numColumns="5" numRows="2" />
     <BusySpinner id="spinner" translation="[940,920]" visible="false" />

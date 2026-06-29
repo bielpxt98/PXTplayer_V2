@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="SeriesDetailScreen" extends="Group">
+  <interface>
+    <field id="selectedSeries" type="assocarray" onChange="onSelectedSeriesChanged" />
+    <field id="details" type="assocarray" onChange="onDetailsChanged" />
+    <field id="loading" type="boolean" onChange="onLoadingChanged" />
+    <field id="message" type="string" onChange="onMessageChanged" />
+    <field id="retryRequested" type="assocarray" alwaysNotify="true" />
+    <field id="backRequested" type="boolean" alwaysNotify="true" />
+    <function name="setDetailFocus" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/SeriesDetailScreen.brs" />
+  <children>
+    <Rectangle width="1920" height="1080" color="0x071A33FF" />
+    <Poster id="cover" translation="[90,90]" width="300" height="450" loadDisplayMode="scaleToFit" />
+    <Rectangle id="coverPlaceholder" translation="[90,90]" width="300" height="450" color="0x102C55FF" />
+    <Label id="nameLabel" translation="[450,90]" width="1320" font="font:LargeBoldSystemFont" color="0xFFFFFFFF" />
+    <Label id="metaLabel" translation="[450,155]" width="1320" font="font:MediumSystemFont" color="0xBBD6FFFF" />
+    <Label id="plotLabel" translation="[450,215]" width="1320" height="210" wrap="true" font="font:MediumSystemFont" color="0xFFFFFFFF" />
+    <BusySpinner id="spinner" translation="[980,455]" visible="false" />
+    <Label id="messageLabel" translation="[450,460]" width="1320" font="font:MediumSystemFont" color="0xFFD36EFF" />
+    <Label text="TEMPORADAS" translation="[450,540]" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+    <MarkupGrid id="seasonGrid" translation="[450,590]" itemComponentName="SeasonItem" itemSize="[155,68]" numColumns="7" numRows="1" />
+    <Label id="episodesTitle" text="EPISODIOS" translation="[450,690]" font="font:MediumBoldSystemFont" color="0xFFFFFFFF" />
+    <MarkupList id="episodeList" translation="[450,735]" itemComponentName="EpisodeListItem" itemSize="[980,56]" numRows="5" />
+    <Label text="Reproducao sera adicionada na proxima etapa." translation="[450,1020]" width="1100" font="font:SmallSystemFont" color="0xBBD6FFFF" />
+  </children>
+</component>

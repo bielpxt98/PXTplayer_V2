@@ -1,157 +1,72 @@
 sub init()
-  m.categoryList = m.top.findNode("categoryList")
-  m.seriesGrid = m.top.findNode("seriesGrid")
-  m.spinner = m.top.findNode("spinner")
-  m.messageLabel = m.top.findNode("messageLabel")
-  m.selectedCategoryId = "all"
-  m.loadedCategoryId = invalid
-  m.categoriesLoading = false
-  m.seriesLoading = false
-  m.categories = []
-
-  m.categoryList.observeField("itemSelected", "onCategorySelected")
-  m.categoryList.observeField("itemFocused", "onCategoryFocused")
-  m.seriesGrid.observeField("itemSelected", "onSeriesSelected")
-  m.top.observeField("service", "onServiceChanged")
+    m.categoryList = m.top.findNode("categoryList")
+    m.seriesGrid = m.top.findNode("seriesGrid")
+    m.spinner = m.top.findNode("spinner")
+    m.messageLabel = m.top.findNode("messageLabel")
+    m.focusArea = "categories"
+    m.loading = false
 end sub
-
-sub onServiceChanged()
-  service = m.top.service
-  if service <> invalid then
-    service.observeField("seriesCategoriesResult", "onCategoriesResult")
-    service.observeField("seriesResult", "onSeriesResult")
-  end if
-end sub
-
-function loadCategories() as void
-  if m.categoriesLoading = true then return
-  if m.top.service = invalid or m.top.account = invalid then return
-  m.categoriesLoading = true
-  showLoading("Carregando categorias...")
-  m.top.service.callFunc("getSeriesCategories", m.top.account)
-end function
-
-sub onCategoriesResult()
-  m.categoriesLoading = false
-  hideLoading()
-  result = m.top.service.seriesCategoriesResult
-  if result = invalid or result.success <> true then
-    m.messageLabel.text = "Nao foi possivel carregar as categorias."
-    return
-  end if
-
-  m.categories = [{ id: "all", name: "TODAS" }]
-  for each category in result.categories
-    if category.id <> invalid and category.name <> invalid then m.categories.push(category)
-  end for
-
-  if m.categories.count() = 1 then
-    m.messageLabel.text = "Nenhuma categoria de serie encontrada."
-  else
-    m.messageLabel.text = ""
-  end if
-  renderCategories()
-  m.categoryList.setFocus(true)
-end sub
-
-sub renderCategories()
-  content = createObject("roSGNode", "ContentNode")
-  for each category in m.categories
-    item = content.createChild("ContentNode")
-    item.title = category.name
-    item.addField("categoryId", "string", false)
-    item.categoryId = category.id
-  end for
-  m.categoryList.content = content
-end sub
-
-sub onCategoryFocused()
-  index = m.categoryList.itemFocused
-  if index >= 0 and index < m.categories.count() then m.selectedCategoryId = m.categories[index].id
-end sub
-
-sub onCategorySelected()
-  if m.seriesLoading = true or m.categoriesLoading = true then return
-  index = m.categoryList.itemSelected
-  if index < 0 or index >= m.categories.count() then return
-  categoryId = m.categories[index].id
-  m.selectedCategoryId = categoryId
-  if m.loadedCategoryId <> invalid and m.loadedCategoryId = categoryId then return
-  m.seriesLoading = true
-  showLoading("Carregando series...")
-  if categoryId = "all" then
-    m.top.service.callFunc("getSeries", m.top.account, "all")
-  else
-    m.top.service.callFunc("getSeries", m.top.account, categoryId)
-  end if
-end sub
-
-sub onSeriesResult()
-  m.seriesLoading = false
-  hideLoading()
-  result = m.top.service.seriesResult
-  if result = invalid or result.success <> true then
-    m.messageLabel.text = "Nao foi possivel carregar as series."
-    return
-  end if
-
-  renderSeries(result.series)
-  m.loadedCategoryId = result.categoryId
-  if result.series = invalid or result.series.count() = 0 then
-    m.messageLabel.text = "Nenhuma serie encontrada nesta categoria."
-  else
-    m.messageLabel.text = ""
-  end if
-end sub
-
-sub renderSeries(series as object)
-  content = createObject("roSGNode", "ContentNode")
-  if series <> invalid then
-    for each show in series
-      item = content.createChild("ContentNode")
-      item.title = show.title
-      item.url = show.imageUri
-      item.addField("seriesId", "string", false)
-      item.seriesId = show.seriesId
+sub onCategoriesChanged()
+    root = CreateObject("roSGNode", "ContentNode")
+    all = root.createChild("ContentNode") : all.title = "TODAS" : all.category_id = ""
+    for each cat in m.top.categories
+        n = root.createChild("ContentNode") : n.title = safe(cat.name, "Categoria") : n.category_id = safe(cat.category_id, "")
     end for
-  end if
-  m.seriesGrid.content = content
+    m.categoryList.content = root
 end sub
-
-sub onSeriesSelected()
+sub onSeriesChanged()
+    root = CreateObject("roSGNode", "ContentNode")
+    for each s in m.top.series
+        n = root.createChild("ContentNode")
+        n.name = safe(s.name, "Serie") : n.title = n.name : n.cover = safe(s.cover, safe(s.stream_icon, "")) : n.stream_icon = safe(s.stream_icon, n.cover) : n.series_id = safe(s.series_id, "") : n.category_id = safe(s.category_id, "")
+    end for
+    m.seriesGrid.content = root
 end sub
-
-sub showLoading(message as string)
-  m.messageLabel.text = message
-  m.spinner.visible = true
-  m.spinner.control = "start"
+sub onLoadingChanged()
+    m.loading = m.top.loading
+    m.spinner.visible = m.loading
+    if m.loading then m.spinner.control = "start" else m.spinner.control = "stop"
 end sub
-
-sub hideLoading()
-  m.spinner.control = "stop"
-  m.spinner.visible = false
+sub onMessageChanged()
+    m.messageLabel.text = m.top.message
 end sub
-
+sub setCatalogFocus()
+    if m.focusArea = "series" then m.seriesGrid.setFocus(true) else m.categoryList.setFocus(true)
+end sub
 function onKeyEvent(key as string, press as boolean) as boolean
-  if press = false then return false
-  if m.categoriesLoading = true or m.seriesLoading = true then return true
-
-  if key = "back" then
-    if m.seriesGrid.hasFocus() then
-      m.categoryList.setFocus(true)
-    else
-      m.top.backToLogin = true
+    if not press then return false
+    if m.loading then return true
+    if key = "right" and m.focusArea = "categories" then m.focusArea = "series" : m.seriesGrid.setFocus(true) : return true
+    if key = "left" and m.focusArea = "series" then m.focusArea = "categories" : m.categoryList.setFocus(true) : return true
+    if key = "OK"
+        if m.focusArea = "categories"
+            item = focusedNode(m.categoryList)
+            if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: item.title }
+        else
+            item = focusedNode(m.seriesGrid)
+            if item = invalid then return true
+            sid = safe(item.series_id, "")
+            if sid = "" then m.top.message = "Esta serie nao possui detalhes disponiveis." else m.top.seriesSelected = nodeToAa(item)
+        end if
+        return true
+    else if key = "back"
+        if m.focusArea = "series" then m.focusArea = "categories" : m.categoryList.setFocus(true) else m.top.backRequested = true
+        return true
     end if
-    return true
-  else if key = "right" and m.categoryList.hasFocus() then
-    if m.seriesGrid.content <> invalid and m.seriesGrid.content.getChildCount() > 0 then m.seriesGrid.setFocus(true)
-    return true
-  else if key = "left" and m.seriesGrid.hasFocus() then
-    if m.seriesGrid.itemFocused mod 4 = 0 then
-      m.categoryList.setFocus(true)
-      return true
-    end if
-  end if
-
-  return false
+    return false
+end function
+function focusedNode(list as object) as dynamic
+    if list.content = invalid then return invalid
+    idx = list.itemFocused
+    if idx < 0 or idx >= list.content.getChildCount() then return invalid
+    return list.content.getChild(idx)
+end function
+function nodeToAa(n as object) as object
+    return { series_id: safe(n.series_id, ""), name: safe(n.name, n.title), cover: safe(n.cover, ""), stream_icon: safe(n.stream_icon, ""), category_id: safe(n.category_id, "") }
+end function
+function safe(v as dynamic, fallback as string) as string
+    if v = invalid then return fallback
+    t = v.ToStr()
+    if t = "" or LCase(t) = "invalid" or LCase(t) = "null" or LCase(t) = "undefined" then return fallback
+    return t
 end function

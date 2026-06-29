@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="MainScene" extends="Scene">
   <children>
+    <LoginScreen id="loginScreen" />
+    <SeriesCatalogScreen id="seriesCatalogScreen" visible="false" />
+    <SeriesDetailScreen id="seriesDetailScreen" visible="false" />
     <XtreamService id="xtreamService" />
     <LoginScreen id="loginScreen" />
     <SeriesCatalogScreen id="seriesCatalogScreen" visible="false" />

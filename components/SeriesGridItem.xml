@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="SeriesGridItem" extends="Group">
   <interface>
-    <field id="itemContent" type="node" onChange="onContentChanged" />
+    <field id="itemContent" type="node" onChange="onItemContentChanged" />
     <field id="focusPercent" type="float" onChange="onFocusChanged" />
   </interface>
-  <children>
-    <Rectangle id="focusRect" translation="[-6,-6]" width="172" height="226" color="0x2f81f7ff" opacity="0" />
-    <Rectangle id="placeholder" width="160" height="210" color="0x20262eff" />
-    <Poster id="poster" width="160" height="210" loadDisplayMode="scaleToFill" />
-    <Rectangle translation="[0,170]" width="160" height="40" color="0x000000cc" />
-    <Label id="titleLabel" translation="[8,174]" width="144" height="34" wrap="true" maxLines="2" font="font:TinySystemFont" />
-  </children>
   <script type="text/brightscript" uri="pkg:/components/SeriesGridItem.brs" />
+  <children>
+    <Rectangle id="focusBox" width="220" height="330" color="0x2A73D9FF" visible="false" />
+    <Poster id="poster" translation="[8,8]" width="204" height="260" loadDisplayMode="scaleToFill" />
+    <Rectangle id="placeholder" translation="[8,8]" width="204" height="260" color="0x102C55FF" visible="true" />
+    <Label id="title" translation="[8,276]" width="204" height="48" wrap="true" horizAlign="center" font="font:SmallSystemFont" color="0xFFFFFFFF" />
+  </children>
 </component>

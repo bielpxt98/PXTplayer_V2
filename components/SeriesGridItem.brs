@@ -1,30 +1,27 @@
 sub init()
-  m.focusRect = m.top.findNode("focusRect")
-  m.poster = m.top.findNode("poster")
-  m.placeholder = m.top.findNode("placeholder")
-  m.titleLabel = m.top.findNode("titleLabel")
+    m.poster = m.top.findNode("poster")
+    m.placeholder = m.top.findNode("placeholder")
+    m.title = m.top.findNode("title")
+    m.focusBox = m.top.findNode("focusBox")
 end sub
 
-sub onContentChanged()
-  content = m.top.itemContent
-  if content = invalid then return
-
-  m.titleLabel.text = content.title
-  if content.url <> invalid and content.url.toStr() <> "" then
-    m.poster.uri = content.url.toStr()
-    m.poster.visible = true
-    m.placeholder.visible = false
-  else
-    m.poster.uri = ""
-    m.poster.visible = false
-    m.placeholder.visible = true
-  end if
+sub onItemContentChanged()
+    item = m.top.itemContent
+    if item = invalid then return
+    m.title.text = getField(item, "name", "Serie")
+    cover = getField(item, "cover", getField(item, "stream_icon", ""))
+    m.poster.uri = cover
+    m.placeholder.visible = cover = ""
 end sub
 
 sub onFocusChanged()
-  if m.top.focusPercent > 0.5 then
-    m.focusRect.opacity = 1
-  else
-    m.focusRect.opacity = 0
-  end if
+    m.focusBox.visible = m.top.focusPercent > 0.5
 end sub
+
+function getField(item as object, key as string, fallback as string) as string
+    value = item[key]
+    if value = invalid then return fallback
+    text = value.ToStr()
+    if text = "" or LCase(text) = "invalid" or LCase(text) = "null" then return fallback
+    return text
+end function

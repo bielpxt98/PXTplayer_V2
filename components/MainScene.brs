@@ -93,7 +93,7 @@ sub startConnect(credentials as object)
     m.connecting = true
     m.loginScreen.loading = true
     m.loginScreen.message = "Conectando..."
-    PRINT "CONNECT_STARTED"
+    PRINT "CONNECT_STARTED dns=" + PxtTrim(credentials.dns)
     m.xtreamService.callFunc("connect", credentials)
 end sub
 
@@ -123,7 +123,9 @@ sub onConnectResult(result as object)
         showHome(m.credentials)
     else
         m.loginScreen.loading = false
-        m.loginScreen.message = "Usuario ou senha invalidos."
+        PRINT "CONNECT_ERROR code=" + PxtTrim(result.code)
+        m.loginScreen.loading = false
+        m.loginScreen.message = RetryMessage(result.message, "conexao")
         showLogin()
     end if
 end sub
@@ -138,15 +140,19 @@ sub onLoadCategoriesRequested()
 
     cachedCategories = LoadSeriesCategoriesCache()
     if cachedCategories <> invalid
+        PRINT "CATEGORIES_LOAD_START source=cache"
+        PRINT "CATEGORIES_COUNT " + cachedCategories.Count().ToStr()
         m.seriesCatalogScreen.callFunc("setCategories", cachedCategories)
         return
     end if
 
+    m.seriesCatalogScreen.loading = true
+    m.seriesCatalogScreen.message = "Carregando categorias..."
     m.loadingCategories = true
     m.catalogTimeoutTimer.control = "stop"
     m.catalogTimeoutTimer.duration = 30
     m.catalogTimeoutTimer.control = "start"
-    PRINT "XTREAM_GET_SERIES_CATEGORIES_RUN"
+    PRINT "CATEGORIES_LOAD_START source=network"
     m.xtreamService.control = "STOP"
     m.xtreamService.action = "getSeriesCategories"
     m.xtreamService.dns = m.account.dns
@@ -164,10 +170,13 @@ sub onSeriesCategoriesResult(result as object)
     m.catalogTimeoutTimer.control = "stop"
 
     if result.success = true
+        PRINT "CATEGORIES_LOAD_SUCCESS"
+        PRINT "CATEGORIES_COUNT " + result.data.Count().ToStr()
         SaveSeriesCategoriesCache(result.data)
         m.seriesCatalogScreen.callFunc("setCategories", result.data)
     else
-        m.seriesCatalogScreen.callFunc("showError", RetryMessage(result.message, "categorias"))
+        PRINT "CATEGORIES_LOAD_ERROR code=" + PxtTrim(result.code)
+        m.seriesCatalogScreen.callFunc("showError", CategoryLoadErrorMessage(result))
     end if
 end sub
 
@@ -183,8 +192,13 @@ sub onSeriesResult(result as object)
         else
             SaveSeriesCategoryCache(result.category_id, result.data)
         end if
+        PRINT "SERIES_COUNT " + result.data.Count().ToStr()
         m.seriesCatalogScreen.series = result.data
-        m.seriesCatalogScreen.message = ""
+        if result.data.Count() = 0
+            m.seriesCatalogScreen.message = "Nenhum item encontrado nesta categoria."
+        else
+            m.seriesCatalogScreen.message = ""
+        end if
     else
         m.seriesCatalogScreen.message = RetryMessage(SeriesLoadErrorMessage(result), "series")
     end if
@@ -208,6 +222,7 @@ sub onCategorySelected(event as object)
     if m.catalogLoading or m.loadingCategories then return
     cat = event.getData()
     if cat = invalid then return
+    PRINT "CATEGORY_SELECTED id=" + PxtTrim(cat.category_id) + " name=" + PxtTrim(cat.name) + " media=series"
     m.pendingSeriesCategory = cat
     categoryId = PxtTrim(cat.category_id)
 
@@ -218,8 +233,13 @@ sub onCategorySelected(event as object)
         cachedSeries = LoadSeriesCategoryCache(categoryId)
     end if
     if cachedSeries <> invalid
+        PRINT "SERIES_COUNT " + cachedSeries.Count().ToStr()
         m.seriesCatalogScreen.series = cachedSeries
-        m.seriesCatalogScreen.message = ""
+        if cachedSeries.Count() = 0
+            m.seriesCatalogScreen.message = "Nenhum item encontrado nesta categoria."
+        else
+            m.seriesCatalogScreen.message = ""
+        end if
         return
     end if
 
@@ -262,6 +282,11 @@ sub onCatalogBackRequested()
     m.catalogTimeoutTimer.control = "stop"
     showHome(m.account)
 end sub
+
+function CategoryLoadErrorMessage(result as dynamic) as string
+    if result <> invalid and result.code = "timeout" then return "Tempo esgotado ao carregar categorias." + Chr(10) + "Pressione OK para tentar novamente."
+    return "Erro ao carregar categorias. Verifique a lista ou o login." + Chr(10) + "Pressione OK para tentar novamente."
+end function
 
 function SeriesLoadErrorMessage(result as dynamic) as string
     if result <> invalid and result.code = "timeout" then return "Tempo esgotado ao carregar series."

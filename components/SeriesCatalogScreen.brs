@@ -42,17 +42,21 @@ end sub
 sub setCategories(categories as object)
     m.categories = []
 
-    m.categories.Push({
-        id: "all",
-        name: "TODAS"
-    })
-
+    validCount = 0
     if categories <> invalid then
         for each category in categories
             if category.category_id <> invalid and category.category_name <> invalid then
+                if validCount = 0
+                    m.categories.Push({
+                        id: "all",
+                        name: "TODAS"
+                    })
+                end if
+                validCount = validCount + 1
                 m.categories.Push({
                     id: category.category_id.ToStr(),
-                    name: category.category_name.ToStr()
+                    name: category.category_name.ToStr(),
+                    media_type: "series"
                 })
             end if
         end for
@@ -71,8 +75,8 @@ sub renderCategories()
         n.category_id = safe(cat.id, "")
     end for
     m.categoryList.content = root
-    if m.categories.Count() <= 1 then
-        m.top.message = "Nenhuma categoria encontrada."
+    if m.categories.Count() = 0 then
+        m.top.message = "Nenhuma categoria encontrada"
     else
         m.top.message = "Selecione uma categoria e pressione OK."
     end if
@@ -119,7 +123,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
         end if
         if m.focusArea = "categories"
             item = focusedNode(m.categoryList)
-            if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: item.title }
+            if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: item.title, media_type: "series" }
         else
             m.top.message = "Selecione uma categoria para carregar o catalogo."
         end if

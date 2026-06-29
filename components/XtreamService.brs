@@ -66,29 +66,40 @@ sub runRequest()
 end sub
 
 sub connectRequest(request as object)
+    PRINT "XTREAM_CONNECT_START dns=" + NormalizeDns(request.dns)
+    if NormalizeDns(request.dns) = "" or PxtTrim(request.username) = "" or PxtTrim(request.password) = ""
+        PRINT "XTREAM_CONNECT_ERROR invalid_credentials"
+        publishResult({ request: "connect", success: false, code: "invalid_request", message: "Preencha DNS, usuario e senha." })
+        return
+    end if
     json = fetchJson(request, "connect", invalid)
     if json = invalid then return
 
     auth = invalid
     if Type(json) = "roAssociativeArray" then auth = json.user_info
     if Type(auth) = "roAssociativeArray" and auth.auth <> invalid and auth.auth.ToStr() = "1"
+        PRINT "XTREAM_CONNECT_SUCCESS"
         publishResult({ request: "connect", success: true, account: { dns: NormalizeDns(request.dns), username: PxtTrim(request.username), password: PxtTrim(request.password) } })
     else
+        PRINT "XTREAM_CONNECT_ERROR invalid_login"
         publishResult({ request: "connect", success: false, code: "invalid_login", message: "Usuario ou senha invalidos." })
     end if
 end sub
 
 sub getSeriesCategoriesRequest(request as object)
+    PRINT "XTREAM_CATEGORIES_START"
     json = fetchJson(request, "get_series_categories", invalid)
     if json = invalid then return
     if Type(json) <> "roArray"
         publishResult({ request: "getSeriesCategories", success: false, code: "invalid_response", error: "O servidor retornou categorias invalidas.", message: "O servidor retornou categorias invalidas." })
         return
     end if
+    PRINT "XTREAM_CATEGORIES_COUNT " + json.Count().ToStr()
     publishResult({ request: "getSeriesCategories", success: true, data: json })
 end sub
 
 sub getSeriesRequest(request as object)
+    PRINT "XTREAM_SERIES_START category=" + PxtTrim(request.category_id)
     params = invalid
     categoryId = PxtTrim(request.category_id)
     if categoryId <> "" and categoryId <> "all" then params = { category_id: categoryId }
@@ -98,6 +109,7 @@ sub getSeriesRequest(request as object)
         publishResult({ request: "getSeries", success: false, code: "invalid_response", error: "O servidor retornou series invalidas.", message: "O servidor retornou series invalidas." })
         return
     end if
+    PRINT "XTREAM_SERIES_COUNT " + json.Count().ToStr()
     publishResult({ request: "getSeries", success: true, data: json, category_id: PxtTrim(request.category_id) })
 end sub
 
@@ -110,7 +122,8 @@ end sub
 function fetchJson(request as object, action as string, params as dynamic) as dynamic
     dns = NormalizeDns(request.dns)
     if dns = ""
-        publishResult({ success: false, request: requestNameForAction(action), code: "invalid_response", error: "O servidor retornou uma resposta inválida.", message: "O servidor retornou uma resposta inválida." })
+        PRINT "XTREAM_REQUEST_ERROR invalid_dns action=" + action
+        publishResult({ success: false, request: requestNameForAction(action), code: "invalid_response", error: "O servidor retornou uma resposta invalida.", message: "O servidor retornou uma resposta invalida." })
         return invalid
     end if
 
@@ -134,6 +147,7 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
     transfer.SetMessagePort(port)
 
     if not transfer.AsyncGetToString()
+        PRINT "XTREAM_REQUEST_ERROR async_start action=" + action
         publishResult({ success: false, request: requestNameForAction(action), code: "network", error: networkMessage(action), message: networkMessage(action) })
         return invalid
     end if
@@ -141,24 +155,28 @@ function fetchJson(request as object, action as string, params as dynamic) as dy
     msg = wait(timeoutMs, port)
     if msg = invalid
         transfer.AsyncCancel()
+        PRINT "XTREAM_REQUEST_TIMEOUT action=" + action
         publishResult({ success: false, request: requestNameForAction(action), code: "timeout", error: timeoutMessage(action), message: timeoutMessage(action) })
         return invalid
     end if
 
     statusCode = msg.GetResponseCode()
     if statusCode < 200 or statusCode >= 300
+        PRINT "XTREAM_REQUEST_HTTP_ERROR action=" + action + " status=" + statusCode.ToStr()
         publishResult({ success: false, request: requestNameForAction(action), code: "network", error: networkMessage(action), message: networkMessage(action) })
         return invalid
     end if
 
     body = msg.GetString()
     if body = invalid or body.Trim() = ""
+        PRINT "XTREAM_REQUEST_EMPTY action=" + action
         publishResult({ success: false, request: requestNameForAction(action), code: "invalid_json", error: invalidMessage(action), message: invalidMessage(action) })
         return invalid
     end if
 
     json = ParseJson(body)
     if json = invalid
+        PRINT "XTREAM_REQUEST_INVALID_JSON action=" + action
         publishResult({ success: false, request: requestNameForAction(action), code: "invalid_json", error: invalidMessage(action), message: invalidMessage(action) })
         return invalid
     end if

@@ -1,97 +1,121 @@
 sub init()
     m.loginScreen = m.top.findNode("loginScreen")
-    m.catalogScreen = m.top.findNode("seriesCatalogScreen")
-    m.detailScreen = m.top.findNode("seriesDetailScreen")
+    m.seriesCatalogScreen = m.top.findNode("seriesCatalogScreen")
     m.xtreamService = m.top.findNode("xtreamService")
+
     m.loginScreen.observeField("submit", "onLoginSubmit")
     m.loginScreen.observeField("backRequested", "onLoginBackRequested")
-    m.catalogScreen.observeField("categorySelected", "onCategorySelected")
-    m.catalogScreen.observeField("seriesSelected", "onSeriesSelected")
-    m.catalogScreen.observeField("backRequested", "onCatalogBackRequested")
-    m.detailScreen.observeField("backRequested", "onDetailBackRequested")
-    m.detailScreen.observeField("retryRequested", "onDetailRetryRequested")
+    m.seriesCatalogScreen.observeField("categorySelected", "onCategorySelected")
+    m.seriesCatalogScreen.observeField("backRequested", "onCatalogBackRequested")
     m.xtreamService.observeField("result", "onXtreamResult")
-    m.connecting = false : m.catalogLoading = false : m.seriesDetailsLoading = false
-    m.credentials = invalid : m.selectedSeries = invalid
+
+    m.connecting = false
+    m.catalogLoading = false
+    m.credentials = invalid
+
     m.loginScreen.account = LoadPlaylistAccount()
     showLogin()
 end sub
+
 sub showLogin()
-    m.catalogScreen.visible = false : m.detailScreen.visible = false : m.loginScreen.visible = true : m.loginScreen.setFocus(true)
+    m.seriesCatalogScreen.visible = false
+    m.loginScreen.visible = true
+    m.loginScreen.setFocus(true)
 end sub
+
 sub showCatalog()
-    m.loginScreen.visible = false : m.detailScreen.visible = false : m.catalogScreen.visible = true : m.catalogScreen.callFunc("setCatalogFocus")
+    m.loginScreen.visible = false
+    m.seriesCatalogScreen.visible = true
+    m.seriesCatalogScreen.callFunc("setCatalogFocus")
 end sub
-sub showDetail()
-    m.loginScreen.visible = false : m.catalogScreen.visible = false : m.detailScreen.visible = true : m.detailScreen.callFunc("setDetailFocus")
-end sub
+
 sub onLoginSubmit(event as object)
+    PRINT "LOGIN_SUBMIT_RECEIVED"
     if m.connecting then return
-    credentials = event.getData() : dns = NormalizeDns(credentials.dns)
-    if dns = "" or PxtTrim(credentials.username) = "" or PxtTrim(credentials.password) = "" then m.loginScreen.message = "Preencha DNS, usuário e senha." : return
-    m.connecting = true : m.loginScreen.loading = true : m.loginScreen.message = "Conectando..."
-    m.xtreamService.request = { dns: dns, username: credentials.username, password: credentials.password }
+
+    credentials = event.getData()
+    dns = NormalizeDns(credentials.dns)
+    username = PxtTrim(credentials.username)
+    password = PxtTrim(credentials.password)
+
+    if dns = "" or username = "" or password = ""
+        m.loginScreen.message = "Preencha DNS, usuário e senha."
+        return
+    end if
+
+    m.connecting = true
+    m.loginScreen.loading = true
+    m.loginScreen.message = "Conectando..."
+    PRINT "XTREAM_CONNECT_STARTED"
+    m.xtreamService.callFunc("connect", { dns: dns, username: username, password: password })
 end sub
-sub onCategorySelected(event as object)
-    if m.catalogLoading then return
-    cat = event.getData() : m.catalogLoading = true : m.catalogScreen.loading = true : m.catalogScreen.message = "Carregando series..."
-    m.xtreamService.request = baseRequest("get_series", { category_id: cat.category_id })
-end sub
-sub onSeriesSelected(event as object)
-    if m.seriesDetailsLoading then return
-    series = event.getData()
-    if PxtTrim(series.series_id) = "" then m.catalogScreen.message = "Esta serie nao possui detalhes disponiveis." : return
-    m.selectedSeries = series : m.seriesDetailsLoading = true
-    m.detailScreen.selectedSeries = series : m.detailScreen.details = invalid : m.detailScreen.loading = true : m.detailScreen.message = "Carregando detalhes..."
-    showDetail()
-    m.xtreamService.request = baseRequest("get_series_info", { series_id: series.series_id })
-end sub
-sub onDetailRetryRequested()
-    if m.selectedSeries = invalid or m.seriesDetailsLoading then return
-    m.seriesDetailsLoading = true
-    m.detailScreen.loading = true : m.detailScreen.message = "Carregando detalhes..."
-    m.xtreamService.request = baseRequest("get_series_info", { series_id: m.selectedSeries.series_id })
-end sub
+
 sub onXtreamResult(event as object)
+    PRINT "XTREAM_CONNECT_RESULT"
     result = event.getData()
-    if result.action = invalid
-        m.connecting = false : m.loginScreen.loading = false
+    if result = invalid then return
+
+    if result.action = "connect"
+        m.connecting = false
+        m.loginScreen.loading = false
+
         if result.success = true
-            m.credentials = { dns: result.dns, username: result.username, password: result.password }
-            SavePlaylistAccount(result.dns, result.username, result.password)
-            m.loginScreen.message = "" : loadCategories() : showCatalog()
+            m.credentials = result.account
+            SavePlaylistAccount(m.credentials.dns, m.credentials.username, m.credentials.password)
+            m.loginScreen.message = ""
+            m.seriesCatalogScreen.account = m.credentials
+            showCatalog()
+            PRINT "OPEN_SERIES_CATALOG"
+            loadCategories()
         else
-            m.loginScreen.message = result.message : showLogin()
+            if result.message <> invalid then m.loginScreen.message = result.message else m.loginScreen.message = "Não foi possível conectar ao servidor."
+            showLogin()
         end if
     else if result.action = "get_series_categories"
-        m.catalogLoading = false : m.catalogScreen.loading = false
-        if result.success then m.catalogScreen.categories = result.categories : m.catalogScreen.message = "Selecione uma categoria e pressione OK." else m.catalogScreen.message = result.message
+        m.catalogLoading = false
+        m.seriesCatalogScreen.loading = false
+        if result.success = true
+            m.seriesCatalogScreen.categories = result.categories
+            m.seriesCatalogScreen.message = "Selecione uma categoria e pressione OK."
+        else
+            m.seriesCatalogScreen.message = result.message
+        end if
     else if result.action = "get_series"
-        m.catalogLoading = false : m.catalogScreen.loading = false
-        if result.success then m.catalogScreen.series = result.series : m.catalogScreen.message = "" else m.catalogScreen.message = result.message
-    else if result.action = "get_series_info"
-        m.seriesDetailsLoading = false : m.detailScreen.loading = false
-        if result.success then m.detailScreen.details = result.details : m.detailScreen.message = "" else m.detailScreen.message = result.message
+        m.catalogLoading = false
+        m.seriesCatalogScreen.loading = false
+        if result.success = true
+            m.seriesCatalogScreen.series = result.series
+            m.seriesCatalogScreen.message = ""
+        else
+            m.seriesCatalogScreen.message = result.message
+        end if
     end if
 end sub
+
 sub loadCategories()
     if m.credentials = invalid then return
-    m.catalogLoading = true : m.catalogScreen.loading = true : m.catalogScreen.message = "Carregando categorias..."
-    m.xtreamService.request = baseRequest("get_series_categories", {})
+    m.catalogLoading = true
+    m.seriesCatalogScreen.loading = true
+    m.seriesCatalogScreen.message = "Carregando categorias..."
+    PRINT "SERIES_CATEGORIES_STARTED"
+    m.xtreamService.callFunc("getSeriesCategories", m.credentials)
 end sub
-function baseRequest(action as string, extra as object) as object
-    req = { action: action, dns: m.credentials.dns, username: m.credentials.username, password: m.credentials.password }
-    for each k in extra : req[k] = extra[k] : end for
-    return req
-end function
+
+sub onCategorySelected(event as object)
+    if m.catalogLoading then return
+    cat = event.getData()
+    m.catalogLoading = true
+    m.seriesCatalogScreen.loading = true
+    m.seriesCatalogScreen.message = "Carregando series..."
+    m.xtreamService.callFunc("getSeries", { account: m.credentials, category_id: cat.category_id })
+end sub
+
 sub onLoginBackRequested()
     if m.connecting then return
     m.top.getScene().close = true
 end sub
+
 sub onCatalogBackRequested()
+    m.catalogLoading = false
     showLogin()
-  end if
-end sub
-sub onDetailBackRequested()
-    m.seriesDetailsLoading = false : m.detailScreen.loading = false : showCatalog()
 end sub

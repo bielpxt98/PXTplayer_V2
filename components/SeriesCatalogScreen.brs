@@ -6,6 +6,10 @@ sub init()
     m.focusArea = "categories"
     m.loading = false
 end sub
+
+sub onAccountChanged()
+    m.account = m.top.account
+end sub
 sub onCategoriesChanged()
     root = CreateObject("roSGNode", "ContentNode")
     all = root.createChild("ContentNode") : all.title = "TODAS" : all.category_id = ""
@@ -43,10 +47,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
             item = focusedNode(m.categoryList)
             if item <> invalid then m.top.categorySelected = { category_id: safe(item.category_id, ""), name: item.title }
         else
-            item = focusedNode(m.seriesGrid)
-            if item = invalid then return true
-            sid = safe(item.series_id, "")
-            if sid = "" then m.top.message = "Esta serie nao possui detalhes disponiveis." else m.top.seriesSelected = nodeToAa(item)
+            m.top.message = "Detalhes de séries estão pausados nesta PR."
         end if
         return true
     else if key = "back"

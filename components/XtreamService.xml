@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<component name="XtreamService" extends="Node">
+<component name="XtreamService" extends="Task">
   <interface>
-    <field id="connectResult" type="assocarray" alwaysNotify="true" />
-    <field id="seriesCategoriesResult" type="assocarray" alwaysNotify="true" />
-    <field id="seriesResult" type="assocarray" alwaysNotify="true" />
+    <field id="request" type="assocarray" />
+    <field id="result" type="assocarray" alwaysNotify="true" />
     <function name="connect" />
     <function name="getSeriesCategories" />
     <function name="getSeries" />
   </interface>
+  <script type="text/brightscript" uri="pkg:/source/Utils.brs" />
   <script type="text/brightscript" uri="pkg:/components/XtreamService.brs" />
 </component>

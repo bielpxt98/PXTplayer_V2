@@ -3,10 +3,9 @@
   <children>
     <LoginScreen id="loginScreen" />
     <SeriesCatalogScreen id="seriesCatalogScreen" visible="false" />
-    <SeriesDetailScreen id="seriesDetailScreen" visible="false" />
     <XtreamService id="xtreamService" />
-    <LoginScreen id="loginScreen" />
-    <SeriesCatalogScreen id="seriesCatalogScreen" visible="false" />
   </children>
+  <script type="text/brightscript" uri="pkg:/source/Utils.brs" />
+  <script type="text/brightscript" uri="pkg:/source/PlaylistStorage.brs" />
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
 </component>

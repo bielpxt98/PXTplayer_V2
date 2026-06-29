@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="SeriesCatalogScreen" extends="Group">
   <interface>
-    <field id="account" type="assocarray" onChange="onAccountChanged" />
+    <field id="account" type="assocarray" />
     <field id="categories" type="array" onChange="onCategoriesChanged" />
     <field id="series" type="array" onChange="onSeriesChanged" />
     <field id="loading" type="boolean" onChange="onLoadingChanged" />
     <field id="message" type="string" onChange="onMessageChanged" />
     <field id="categorySelected" type="assocarray" alwaysNotify="true" />
     <field id="backRequested" type="boolean" alwaysNotify="true" />
-    <field id="loadCategoriesRequested" type="assocarray" alwaysNotify="true" />
+    <field id="loadCategoriesRequested" type="boolean" alwaysNotify="true" />
     <function name="setCatalogFocus" />
     <function name="resetForLoading" />
+    <function name="setCategories" />
+    <function name="showError" />
   </interface>
   <script type="text/brightscript" uri="pkg:/components/SeriesCatalogScreen.brs" />
   <children>

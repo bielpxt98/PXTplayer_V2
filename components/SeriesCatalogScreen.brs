@@ -6,20 +6,80 @@ sub init()
     m.focusArea = "categories"
     m.loading = false
     m.categoriesLoaded = false
+    m.top.ObserveField("account", "onAccountChanged")
 end sub
 
 sub onAccountChanged()
     m.account = m.top.account
-    m.top.loadCategoriesRequested = m.account
+    if m.account <> invalid then
+        PRINT "SERIES_ACCOUNT_RECEIVED"
+        loadCategories()
+    else
+        showError("Conta nao encontrada.")
+    end if
 end sub
-sub onCategoriesChanged()
+
+sub loadCategories()
+    PRINT "LOAD_CATEGORIES_REQUESTED"
+    m.top.loadCategoriesRequested = true
+    showLoading("Carregando categorias...")
+end sub
+
+sub showLoading(message as string)
+    m.top.message = message
+    m.top.loading = true
+end sub
+
+sub hideLoading()
+    m.top.loading = false
+end sub
+
+sub showError(message as string)
+    m.top.message = message
+    m.top.loading = false
+end sub
+
+sub setCategories(categories as object)
+    m.categories = []
+
+    m.categories.Push({
+        id: "all",
+        name: "TODAS"
+    })
+
+    if categories <> invalid then
+        for each category in categories
+            if category.category_id <> invalid and category.category_name <> invalid then
+                m.categories.Push({
+                    id: category.category_id.ToStr(),
+                    name: category.category_name.ToStr()
+                })
+            end if
+        end for
+    end if
+
+    renderCategories()
+    hideLoading()
+end sub
+
+sub renderCategories()
     m.categoriesLoaded = true
     root = CreateObject("roSGNode", "ContentNode")
-    all = root.createChild("ContentNode") : all.title = "TODAS" : all.category_id = ""
-    for each cat in m.top.categories
-        n = root.createChild("ContentNode") : n.title = safe(cat.name, "Categoria") : n.category_id = safe(cat.category_id, "")
+    for each cat in m.categories
+        n = root.createChild("ContentNode")
+        n.title = safe(cat.name, "Categoria")
+        n.category_id = safe(cat.id, "")
     end for
     m.categoryList.content = root
+    if m.categories.Count() <= 1 then
+        m.top.message = "Nenhuma categoria encontrada."
+    else
+        m.top.message = "Selecione uma categoria e pressione OK."
+    end if
+    PRINT "SERIES_CATEGORIES_RENDERED"
+end sub
+sub onCategoriesChanged()
+    setCategories(m.top.categories)
 end sub
 sub onSeriesChanged()
     root = CreateObject("roSGNode", "ContentNode")
@@ -54,7 +114,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
     if key = "left" and m.focusArea = "series" then m.focusArea = "categories" : m.categoryList.setFocus(true) : return true
     if key = "OK"
         if not m.categoriesLoaded or m.categoryList.content = invalid or m.categoryList.content.getChildCount() = 0
-            m.top.loadCategoriesRequested = m.account
+            loadCategories()
             return true
         end if
         if m.focusArea = "categories"

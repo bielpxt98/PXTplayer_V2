@@ -9,15 +9,14 @@ sub init()
     m.seriesCatalogScreen.observeField("categorySelected", "onCategorySelected")
     m.seriesCatalogScreen.observeField("backRequested", "onCatalogBackRequested")
     m.seriesCatalogScreen.observeField("loadCategoriesRequested", "onLoadCategoriesRequested")
-    m.xtreamService.observeField("connectResult", "onConnectResult")
-    m.xtreamService.observeField("categoriesResult", "onSeriesCategoriesResult")
-    m.xtreamService.observeField("seriesResult", "onSeriesResult")
+    m.xtreamService.ObserveField("result", "onXtreamResult")
     m.catalogTimeoutTimer.observeField("fire", "onCatalogTimeout")
 
     m.connecting = false
     m.loadingCategories = false
     m.catalogLoading = false
     m.credentials = invalid
+    m.account = invalid
 
     m.loginScreen.account = LoadPlaylistAccount()
     showLogin()
@@ -40,8 +39,9 @@ sub openSeriesCatalog(account as object)
     m.seriesCatalogScreen.loading = true
     m.seriesCatalogScreen.visible = true
     m.seriesCatalogScreen.callFunc("setCatalogFocus")
-    PRINT "OPEN_SERIES_CATALOG"
-    m.seriesCatalogScreen.account = account
+    PRINT "SERIES_SCREEN_OPENED"
+    m.account = account
+    m.seriesCatalogScreen.account = m.account
 end sub
 
 sub onLoginSubmit(event as object)
@@ -69,15 +69,28 @@ sub startConnect(credentials as object)
     m.xtreamService.callFunc("connect", credentials)
 end sub
 
-sub onConnectResult(event as object)
+sub onXtreamResult()
+    result = m.xtreamService.result
+    if result = invalid then return
+
+    if result.request = "connect" then
+        onConnectResult(result)
+    else if result.request = "getSeriesCategories" then
+        onSeriesCategoriesResult(result)
+    else if result.request = "getSeries" then
+        onSeriesResult(result)
+    end if
+end sub
+
+sub onConnectResult(result as object)
     PRINT "CONNECT_RESULT_RECEIVED"
-    result = event.getData()
     if result = invalid then return
     m.connecting = false
 
     if result.success = true
         PRINT "CONNECT_SUCCESS"
         m.credentials = result.account
+        m.account = result.account
         SavePlaylistAccount(m.credentials.dns, m.credentials.username, m.credentials.password)
         openSeriesCatalog(m.credentials)
     else
@@ -87,59 +100,49 @@ sub onConnectResult(event as object)
     end if
 end sub
 
-sub onLoadCategoriesRequested(event as object)
+sub onLoadCategoriesRequested()
     if m.loadingCategories then return
-    account = event.getData()
-    if account = invalid then account = m.credentials
-    if account = invalid or PxtTrim(account.dns) = "" or PxtTrim(account.username) = "" or PxtTrim(account.password) = ""
-        m.seriesCatalogScreen.loading = false
-        m.seriesCatalogScreen.message = "Nao foi possivel carregar categorias." + Chr(10) + "Pressione OK para tentar novamente."
+    if m.account = invalid then m.account = m.credentials
+    if m.account = invalid or PxtTrim(m.account.dns) = "" or PxtTrim(m.account.username) = "" or PxtTrim(m.account.password) = ""
+        m.seriesCatalogScreen.callFunc("showError", "Conta nao encontrada.")
         return
     end if
 
     m.loadingCategories = true
-    m.seriesCatalogScreen.loading = true
-    m.seriesCatalogScreen.message = "Carregando categorias..."
     m.catalogTimeoutTimer.control = "stop"
     m.catalogTimeoutTimer.duration = 30
     m.catalogTimeoutTimer.control = "start"
-    PRINT "CATEGORIES_STARTED"
-    m.xtreamService.callFunc("getSeriesCategories", account)
+    PRINT "XTREAM_GET_SERIES_CATEGORIES_RUN"
+    m.xtreamService.control = "STOP"
+    m.xtreamService.action = "getSeriesCategories"
+    m.xtreamService.dns = m.account.dns
+    m.xtreamService.username = m.account.username
+    m.xtreamService.password = m.account.password
+    m.xtreamService.control = "RUN"
 end sub
 
-sub onSeriesCategoriesResult(event as object)
-    PRINT "CATEGORIES_RESULT_RECEIVED"
-    result = event.getData()
+sub onSeriesCategoriesResult(result as object)
+    PRINT "MAINSCENE_CATEGORIES_RESULT_RECEIVED"
     if result = invalid then return
     if not m.loadingCategories then return
 
     m.loadingCategories = false
     m.catalogTimeoutTimer.control = "stop"
-    m.seriesCatalogScreen.loading = false
 
     if result.success = true
-        PRINT "CATEGORIES_SUCCESS"
-        m.seriesCatalogScreen.categories = result.categories
-        m.seriesCatalogScreen.message = "Selecione uma categoria e pressione OK."
+        m.seriesCatalogScreen.callFunc("setCategories", result.data)
     else
-        if result.code = "timeout"
-            PRINT "CATEGORIES_TIMEOUT"
-            m.seriesCatalogScreen.message = "Tempo esgotado ao carregar categorias." + Chr(10) + "Pressione OK para tentar novamente."
-        else
-            PRINT "CATEGORIES_ERROR"
-            m.seriesCatalogScreen.message = "Nao foi possivel carregar categorias." + Chr(10) + "Pressione OK para tentar novamente."
-        end if
+        m.seriesCatalogScreen.callFunc("showError", result.message)
     end if
 end sub
 
-sub onSeriesResult(event as object)
-    result = event.getData()
+sub onSeriesResult(result as object)
     if result = invalid then return
     m.catalogLoading = false
     m.catalogTimeoutTimer.control = "stop"
     m.seriesCatalogScreen.loading = false
     if result.success = true
-        m.seriesCatalogScreen.series = result.series
+        m.seriesCatalogScreen.series = result.data
         m.seriesCatalogScreen.message = ""
     else
         m.seriesCatalogScreen.message = result.message

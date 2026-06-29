@@ -2,9 +2,12 @@
 <component name="XtreamService" extends="Task">
   <interface>
     <field id="request" type="assocarray" />
-    <field id="connectResult" type="assocarray" alwaysNotify="true" />
-    <field id="categoriesResult" type="assocarray" alwaysNotify="true" />
-    <field id="seriesResult" type="assocarray" alwaysNotify="true" />
+    <field id="action" type="string" />
+    <field id="dns" type="string" />
+    <field id="username" type="string" />
+    <field id="password" type="string" />
+    <field id="category_id" type="string" />
+    <field id="result" type="assocarray" alwaysNotify="true" />
     <function name="connect" />
     <function name="getSeriesCategories" />
     <function name="getSeries" />

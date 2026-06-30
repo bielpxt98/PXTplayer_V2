@@ -1,61 +1,26 @@
 sub init()
-    m.loginScreen = m.top.findNode("loginScreen")
-    m.successScreen = m.top.findNode("successScreen")
-    m.xtreamService = m.top.findNode("xtreamService")
-    m.loginScreen.observeField("submit", "onLoginSubmit")
-    m.loginScreen.observeField("backRequested", "onLoginBackRequested")
-    m.successScreen.observeField("backRequested", "onSuccessBackRequested")
-    m.xtreamService.observeField("result", "onXtreamResult")
-    m.connecting = false
-    m.loginScreen.account = LoadPlaylistAccount()
-    showLogin()
+    m.blackRect = m.top.findNode("blackRect")
+    m.titleLabel = m.top.findNode("titleLabel")
+
+    m.top.observeField("width", "layoutScene")
+    m.top.observeField("height", "layoutScene")
+    layoutScene()
+
+    m.top.setFocus(true)
 end sub
 
-sub showLogin()
-    m.successScreen.visible = false
-    m.loginScreen.visible = true
-    m.loginScreen.setFocus(true)
-end sub
+sub layoutScene()
+    width = m.top.width
+    height = m.top.height
 
-sub showSuccess()
-    m.loginScreen.visible = false
-    m.successScreen.visible = true
-    m.successScreen.setFocus(true)
-end sub
+    if width = invalid or width <= 0 then width = 1920
+    if height = invalid or height <= 0 then height = 1080
 
-sub onLoginSubmit(event as object)
-    if m.connecting then return
-    credentials = event.getData()
-    dns = NormalizeDns(credentials.dns)
-    if dns = "" or PxtTrim(credentials.username) = "" or PxtTrim(credentials.password) = ""
-        m.loginScreen.message = "Preencha DNS, usuário e senha."
-        return
-    end if
-    m.connecting = true
-    m.loginScreen.loading = true
-    m.loginScreen.message = "Conectando..."
-    m.xtreamService.request = { dns: dns, username: credentials.username, password: credentials.password }
-end sub
+    m.blackRect.width = width
+    m.blackRect.height = height
 
-sub onXtreamResult(event as object)
-    result = event.getData()
-    m.connecting = false
-    m.loginScreen.loading = false
-    if result.success = true
-        SavePlaylistAccount(result.dns, result.username, result.password)
-        m.loginScreen.message = ""
-        showSuccess()
-    else
-        m.loginScreen.message = result.message
-        showLogin()
-    end if
-end sub
-
-sub onLoginBackRequested()
-    if m.connecting then return
-    m.top.getScene().close = true
-end sub
-
-sub onSuccessBackRequested()
-    showLogin()
+    m.titleLabel.width = width
+    m.titleLabel.height = height
+    m.titleLabel.translation = [0, 0]
+    m.titleLabel.font = "font:MediumBoldSystemFont"
 end sub

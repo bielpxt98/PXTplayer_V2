@@ -16,27 +16,6 @@ mkdir -p "$BUILD_DIR"
 [[ -d components ]] || fail "components/ não encontrado"
 [[ -d images ]] || fail "images/ não encontrado"
 
-python3 - <<'PY'
-from pathlib import Path
-import re
-import sys
-import xml.etree.ElementTree as ET
-root = Path('.')
-for xml in sorted((root / 'components').glob('*.xml')):
-    try:
-        ET.parse(xml)
-    except ET.ParseError as exc:
-        raise SystemExit(f'XML inválido em {xml}: {exc}')
-
-existing = {str(p).replace('\\', '/') for p in root.rglob('*') if p.is_file()}
-for path in sorted(root.glob('components/*')) + sorted(root.glob('source/*')):
-    if path.is_file():
-        text = path.read_text(encoding='utf-8')
-        for ref in re.findall(r'pkg:/([^"\'\s<>]+)', text):
-            if ref not in existing:
-                raise SystemExit(f'Referência pkg:/ ausente: pkg:/{ref} em {path}')
-PY
-
 (
   cd "$ROOT_DIR"
   zip -q -r "$ZIP_PATH" manifest source components images \

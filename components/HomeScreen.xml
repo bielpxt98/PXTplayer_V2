@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="HomeScreen" extends="Group">
   <interface>
+    <field id="openLiveTV" type="boolean" alwaysNotify="true" />
     <field id="openAccount" type="boolean" alwaysNotify="true" />
     <function name="setHomeFocus" />
   </interface>
@@ -8,6 +9,7 @@
   <children>
     <Rectangle id="background" color="0x000000FF" />
     <Label id="logoLabel" text="PXT PLAYER" color="0xFFFFFFFF" horizAlign="center" font="font:LargeBoldSystemFont" />
+    <HomeButton id="liveTVButton" labelText="TV AO VIVO" />
     <HomeButton id="accountButton" labelText="CONTA" />
   </children>
 </component>

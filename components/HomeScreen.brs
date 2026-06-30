@@ -1,7 +1,7 @@
 sub init()
     m.background = m.top.findNode("background")
     m.logoLabel = m.top.findNode("logoLabel")
-    m.buttons = [m.top.findNode("accountButton")]
+    m.buttons = [m.top.findNode("liveTVButton"), m.top.findNode("accountButton")]
     m.focusIndex = 0
 
     m.top.observeField("width", "layoutHome")
@@ -32,15 +32,25 @@ sub layoutHome()
     firstButtonY = 480
 
     for i = 0 to m.buttons.count() - 1
-        m.buttons[i].translation = [buttonX, firstButtonY]
+        m.buttons[i].translation = [buttonX, firstButtonY + (i * 92)]
     end for
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
-    if key = "OK"
-        m.top.openAccount = true
+    if key = "up"
+        m.focusIndex = m.focusIndex - 1
+        if m.focusIndex < 0 then m.focusIndex = m.buttons.count() - 1
+        updateFocus()
+        return true
+    else if key = "down"
+        m.focusIndex = m.focusIndex + 1
+        if m.focusIndex >= m.buttons.count() then m.focusIndex = 0
+        updateFocus()
+        return true
+    else if key = "OK"
+        if m.focusIndex = 0 then m.top.openLiveTV = true else m.top.openAccount = true
         return true
     end if
 

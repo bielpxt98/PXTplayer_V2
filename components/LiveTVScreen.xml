@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="LiveTVScreen" extends="Group">
+  <interface>
+    <field id="credentials" type="assocarray" onChange="onCredentialsChanged" />
+    <field id="backRequested" type="boolean" alwaysNotify="true" />
+    <function name="setLiveTVFocus" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/LiveTVScreen.brs" />
+  <children>
+    <Rectangle id="background" color="0x000000FF" />
+    <Label id="titleLabel" text="TV AO VIVO" color="0xFFFFFFFF" font="font:LargeBoldSystemFont" />
+    <Label id="helpLabel" text="↑↓ navegar   ←→ trocar lista   OK reproduzir   Back voltar" color="0x8EA4C2FF" font="font:SmallSystemFont" />
+    <Label id="categoryTitleLabel" text="Categorias" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" />
+    <Label id="channelsTitleLabel" text="Canais" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" />
+    <Label id="counterLabel" color="0x8EA4C2FF" font="font:SmallSystemFont" horizAlign="right" />
+    <Rectangle id="categoryPanel" color="0x091522FF" />
+    <Rectangle id="channelPanel" color="0x091522FF" />
+    <Group id="categoryRows" />
+    <Group id="channelRows" />
+    <Label id="messageLabel" color="0xFFFFFFFF" font="font:MediumBoldSystemFont" horizAlign="center" />
+    <Video id="videoPlayer" visible="false" />
+  </children>
+</component>

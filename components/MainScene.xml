@@ -6,5 +6,6 @@
     <LoginScreen id="loginScreen" visible="false" />
     <LoadingScreen id="loadingScreen" visible="false" />
     <AccountScreen id="accountScreen" visible="false" />
+    <LiveTVScreen id="liveTVScreen" visible="false" />
   </children>
 </component>

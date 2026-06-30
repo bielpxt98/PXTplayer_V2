@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="HomeButton" extends="Group">
+  <interface>
+    <field id="labelText" type="string" onChange="onLabelTextChanged" />
+    <field id="selected" type="boolean" onChange="onSelectedChanged" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/HomeButton.brs" />
+  <children>
+    <Group id="buttonGroup">
+      <Rectangle id="background" width="560" height="72" color="0x102033FF" />
+      <Label id="buttonLabel" width="560" height="72" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" color="0xD8E6FFFF" />
+    </Group>
+    <Animation id="focusAnimation" duration="0.12" easeFunction="linear">
+      <Vector2DFieldInterpolator id="scaleInterpolator" fieldToInterp="buttonGroup.scale" />
+    </Animation>
+  </children>
+</component>

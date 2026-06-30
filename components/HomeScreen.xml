@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="HomeScreen" extends="Group">
+  <interface>
+    <field id="openLive" type="boolean" alwaysNotify="true" />
+    <field id="openMovies" type="boolean" alwaysNotify="true" />
+    <field id="openSeries" type="boolean" alwaysNotify="true" />
+    <field id="openPlaylist" type="boolean" alwaysNotify="true" />
+    <function name="setHomeFocus" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/HomeScreen.brs" />
+  <children>
+    <Rectangle id="background" color="0x000000FF" />
+    <Label id="logoLabel" text="PXT PLAYER" color="0xFFFFFFFF" horizAlign="center" font="font:LargeBoldSystemFont" />
+    <HomeButton id="liveButton" labelText="TV AO VIVO" />
+    <HomeButton id="moviesButton" labelText="FILMES" />
+    <HomeButton id="seriesButton" labelText="SÉRIES" />
+    <HomeButton id="playlistButton" labelText="LISTA DE REPRODUÇÃO" />
+  </children>
+</component>

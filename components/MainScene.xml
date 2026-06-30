@@ -4,6 +4,7 @@
   <children>
     <HomeScreen id="homeScreen" visible="false" />
     <LoginScreen id="loginScreen" visible="false" />
+    <LoadingScreen id="loadingScreen" visible="false" />
     <AccountScreen id="accountScreen" visible="false" />
   </children>
 </component>

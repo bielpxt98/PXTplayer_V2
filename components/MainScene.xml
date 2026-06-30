@@ -1,11 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="MainScene" extends="Scene">
-  <script type="text/brightscript" uri="pkg:/source/Utils.brs" />
-  <script type="text/brightscript" uri="pkg:/source/PlaylistStorage.brs" />
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
-    <LoginScreen id="loginScreen" />
-    <LoginSuccessScreen id="successScreen" visible="false" />
-    <XtreamService id="xtreamService" />
+    <Rectangle id="blackRect" color="#000000" />
+    <Label id="titleLabel" text="PXT PLAYER" color="#FFFFFF" horizAlign="center" vertAlign="center" />
   </children>
 </component>

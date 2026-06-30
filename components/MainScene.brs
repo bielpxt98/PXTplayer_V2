@@ -1,21 +1,26 @@
 sub init()
     m.homeScreen = m.top.findNode("homeScreen")
     m.loginScreen = m.top.findNode("loginScreen")
+    m.accountScreen = m.top.findNode("accountScreen")
+    m.currentCredentials = invalid
+    m.authMode = ""
 
-    m.homeScreen.observeField("openLive", "onOpenLive")
-    m.homeScreen.observeField("openMovies", "onOpenMovies")
-    m.homeScreen.observeField("openSeries", "onOpenSeries")
-    m.homeScreen.observeField("openPlaylist", "onOpenPlaylist")
+    m.homeScreen.observeField("openAccount", "onOpenAccount")
     m.loginScreen.observeField("submit", "onLoginSubmit")
     m.loginScreen.observeField("backRequested", "onLoginBackRequested")
+    m.accountScreen.observeField("backRequested", "onAccountBackRequested")
+    m.accountScreen.observeField("removeRequested", "onRemoveAccountRequested")
 
     m.top.observeField("width", "layoutScene")
     m.top.observeField("height", "layoutScene")
     layoutScene()
 
-    m.homeScreen.visible = true
-    m.homeScreen.callFunc("setHomeFocus")
-    PRINT "HOME_SCREEN_OPENED"
+    savedCredentials = loadSavedCredentials()
+    if savedCredentials <> invalid
+        validateCredentials(savedCredentials, "startup")
+    else
+        showLoginScreen("")
+    end if
 end sub
 
 sub layoutScene()
@@ -29,46 +34,131 @@ sub layoutScene()
     m.homeScreen.height = height
     m.loginScreen.width = width
     m.loginScreen.height = height
+    m.accountScreen.width = width
+    m.accountScreen.height = height
 end sub
 
-sub onOpenLive()
-    PRINT "HOME_OPEN_LIVE"
+sub validateCredentials(credentials as object, mode as string)
+    m.authMode = mode
+    m.loginScreen.busy = true
+    m.loginScreen.statusMessage = "Conectando..."
+    task = CreateObject("roSGNode", "AuthTask")
+    task.credentials = credentials
+    task.observeField("result", "onAuthResult")
+    m.authTask = task
+    task.control = "RUN"
 end sub
 
-sub onOpenMovies()
-    PRINT "HOME_OPEN_MOVIES"
-end sub
+sub onAuthResult(event as object)
+    result = event.getData()
+    m.loginScreen.busy = false
+    if result = invalid then result = { success: false, message: "Não foi possível conectar ao servidor.", status: "network" }
 
-sub onOpenSeries()
-    PRINT "HOME_OPEN_SERIES"
-end sub
+    if result.success = true
+        m.currentCredentials = result.credentials
+        saveCredentials(m.currentCredentials)
+        m.loginScreen.statusMessage = "Conectado com sucesso."
+        showHomeScreen()
+    else
+        if m.authMode = "startup" then clearSavedCredentials()
+        m.loginScreen.statusMessage = result.message
+        showLoginScreen(result.message)
+    end if
 
-sub onOpenPlaylist()
-    PRINT "HOME_OPEN_PLAYLIST"
-    showLoginScreen()
+    m.authTask = invalid
 end sub
 
 sub showHomeScreen()
     m.loginScreen.visible = false
+    m.accountScreen.visible = false
     m.homeScreen.visible = true
     m.homeScreen.callFunc("setHomeFocus")
     PRINT "HOME_SCREEN_OPENED"
 end sub
 
-sub showLoginScreen()
+sub showLoginScreen(message as string)
     m.homeScreen.visible = false
+    m.accountScreen.visible = false
     m.loginScreen.visible = true
+    m.loginScreen.statusMessage = message
     m.loginScreen.callFunc("setLoginFocus")
     PRINT "LOGIN_SCREEN_OPENED"
+end sub
+
+sub showAccountScreen()
+    m.homeScreen.visible = false
+    m.loginScreen.visible = false
+    m.accountScreen.visible = true
+    account = { status: "Conectado" }
+    if m.currentCredentials <> invalid
+        account.dns = m.currentCredentials.dns
+        account.username = m.currentCredentials.username
+    end if
+    m.accountScreen.account = account
+    m.accountScreen.callFunc("setAccountFocus")
+    PRINT "ACCOUNT_SCREEN_OPENED"
+end sub
+
+sub onOpenAccount()
+    showAccountScreen()
 end sub
 
 sub onLoginSubmit(event as object)
     loginData = event.getData()
     PRINT "LOGIN_SUBMIT_RECEIVED"
-    PRINT loginData
+    validateCredentials(loginData, "login")
 end sub
 
 sub onLoginBackRequested()
     PRINT "LOGIN_BACK_REQUESTED"
+end sub
+
+sub onAccountBackRequested()
     showHomeScreen()
+end sub
+
+sub onRemoveAccountRequested()
+    dialog = CreateObject("roSGNode", "Dialog")
+    dialog.title = "Deseja remover esta conta?"
+    dialog.buttons = ["SIM", "NÃO"]
+    dialog.observeField("buttonSelected", "onRemoveDialogButtonSelected")
+    m.top.dialog = dialog
+end sub
+
+sub onRemoveDialogButtonSelected(event as object)
+    dialog = event.getRoSGNode()
+    selected = dialog.buttonSelected
+    m.top.dialog = invalid
+
+    if selected = 0
+        clearSavedCredentials()
+        m.currentCredentials = invalid
+        showLoginScreen("")
+    else
+        m.accountScreen.callFunc("setAccountFocus")
+    end if
+end sub
+
+function loadSavedCredentials() as object
+    section = CreateObject("roRegistrySection", "pxtplayer_auth")
+    if section.Exists("dns") and section.Exists("username") and section.Exists("password")
+        return { dns: section.Read("dns"), username: section.Read("username"), password: section.Read("password") }
+    end if
+    return invalid
+end function
+
+sub saveCredentials(credentials as object)
+    section = CreateObject("roRegistrySection", "pxtplayer_auth")
+    section.Write("dns", credentials.dns)
+    section.Write("username", credentials.username)
+    section.Write("password", credentials.password)
+    section.Flush()
+end sub
+
+sub clearSavedCredentials()
+    section = CreateObject("roRegistrySection", "pxtplayer_auth")
+    section.Delete("dns")
+    section.Delete("username")
+    section.Delete("password")
+    section.Flush()
 end sub

@@ -1,12 +1,7 @@
 sub init()
     m.background = m.top.findNode("background")
     m.logoLabel = m.top.findNode("logoLabel")
-    m.buttons = [
-        m.top.findNode("liveButton"),
-        m.top.findNode("moviesButton"),
-        m.top.findNode("seriesButton"),
-        m.top.findNode("playlistButton")
-    ]
+    m.buttons = [m.top.findNode("accountButton")]
     m.focusIndex = 0
 
     m.top.observeField("width", "layoutHome")
@@ -31,38 +26,21 @@ sub layoutHome()
     m.background.height = height
 
     m.logoLabel.width = width
-    m.logoLabel.translation = [0, 250]
+    m.logoLabel.translation = [0, 310]
 
     buttonX = (width - 560) / 2
-    firstButtonY = 410
-    spacing = 96
+    firstButtonY = 480
 
     for i = 0 to m.buttons.count() - 1
-        m.buttons[i].translation = [buttonX, firstButtonY + (i * spacing)]
+        m.buttons[i].translation = [buttonX, firstButtonY]
     end for
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
-    if key = "up"
-        if m.focusIndex > 0 then m.focusIndex = m.focusIndex - 1
-        updateFocus()
-        return true
-    else if key = "down"
-        if m.focusIndex < m.buttons.count() - 1 then m.focusIndex = m.focusIndex + 1
-        updateFocus()
-        return true
-    else if key = "OK"
-        if m.focusIndex = 0
-            m.top.openLive = true
-        else if m.focusIndex = 1
-            m.top.openMovies = true
-        else if m.focusIndex = 2
-            m.top.openSeries = true
-        else if m.focusIndex = 3
-            m.top.openPlaylist = true
-        end if
+    if key = "OK"
+        m.top.openAccount = true
         return true
     end if
 

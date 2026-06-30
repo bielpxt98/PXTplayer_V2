@@ -3,6 +3,8 @@
   <interface>
     <field id="submit" type="assocarray" alwaysNotify="true" />
     <field id="backRequested" type="boolean" alwaysNotify="true" />
+    <field id="busy" type="boolean" onChange="onBusyChanged" />
+    <field id="statusMessage" type="string" onChange="onStatusMessageChanged" />
     <function name="setLoginFocus" />
   </interface>
   <script type="text/brightscript" uri="pkg:/components/LoginScreen.brs" />
@@ -23,6 +25,7 @@
       <Rectangle id="passwordBox" width="720" height="70" color="0x102033FF" />
       <Label id="passwordText" width="680" height="70" color="0xFFFFFFFF" vertAlign="center" font="font:MediumSystemFont" />
 
+      <Label id="statusLabel" width="720" height="44" color="0xFFFFFFFF" horizAlign="center" font="font:MediumSystemFont" />
       <HomeButton id="enterButton" labelText="ENTRAR" />
       <HomeButton id="backButton" labelText="VOLTAR" />
     </Group>

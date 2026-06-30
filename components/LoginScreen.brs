@@ -17,6 +17,7 @@ sub init()
     m.passwordLabel = m.top.findNode("passwordLabel")
     m.passwordBox = m.top.findNode("passwordBox")
     m.passwordText = m.top.findNode("passwordText")
+    m.statusLabel = m.top.findNode("statusLabel")
     m.enterButton = m.top.findNode("enterButton")
     m.backButton = m.top.findNode("backButton")
 
@@ -60,13 +61,15 @@ sub layoutLogin()
     m.usernameText.translation = [20, 42 + rowSpacing]
     m.passwordText.translation = [20, 42 + (rowSpacing * 2)]
 
-    buttonY = (rowSpacing * 3) + 55
+    m.statusLabel.translation = [0, (rowSpacing * 3) + 5]
+    buttonY = (rowSpacing * 3) + 65
     m.enterButton.translation = [0, buttonY]
     m.backButton.translation = [600, buttonY]
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
+    if m.top.busy = true then return true
 
     if key = "up"
         if m.focusIndex > 0 then m.focusIndex = m.focusIndex - 1
@@ -148,6 +151,7 @@ sub onKeyboardButtonSelected(event as object)
 end sub
 
 sub submitLogin()
+    if m.top.busy = true then return
     m.top.submit = {
         dns: m.dns
         username: m.username
@@ -195,3 +199,16 @@ function maskText(value as string) as string
 
     return masked
 end function
+
+
+sub onBusyChanged()
+    updateFocus()
+end sub
+
+sub onStatusMessageChanged()
+    if m.top.statusMessage = invalid
+        m.statusLabel.text = ""
+    else
+        m.statusLabel.text = m.top.statusMessage
+    end if
+end sub

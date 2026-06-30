@@ -51,8 +51,11 @@ sub validateCredentials(credentials as object, mode as string)
     m.authMode = mode
     m.loginScreen.busy = true
     m.loginScreen.statusMessage = "Conectando..."
-    task = CreateObject("roSGNode", "AuthTask")
-    task.credentials = credentials
+    task = CreateObject("roSGNode", "XtreamService")
+    task.action = "connect"
+    task.dns = credentials.dns
+    task.username = credentials.username
+    task.password = credentials.password
     task.observeField("result", "onAuthResult")
     m.authTask = task
     task.control = "RUN"
@@ -61,7 +64,8 @@ end sub
 sub onAuthResult(event as object)
     result = event.getData()
     m.loginScreen.busy = false
-    if result = invalid then result = { success: false, message: "Não foi possível conectar ao servidor.", status: "network" }
+    PRINT "LOGIN_LOADING_OFF"
+    if result = invalid then result = { success: false, message: "Não foi possível conectar ao servidor.", error: "network" }
 
     if result.success = true
         m.currentCredentials = result.credentials
@@ -149,7 +153,7 @@ end sub
 
 sub onLoginSubmit(event as object)
     loginData = event.getData()
-    PRINT "LOGIN_SUBMIT_RECEIVED"
+    PRINT "LOGIN_SUBMIT"
     validateCredentials(loginData, "login")
 end sub
 

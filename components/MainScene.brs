@@ -1,6 +1,7 @@
 sub init()
     m.homeScreen = m.top.findNode("homeScreen")
     m.loginScreen = m.top.findNode("loginScreen")
+    m.loadingScreen = m.top.findNode("loadingScreen")
     m.accountScreen = m.top.findNode("accountScreen")
     m.currentCredentials = invalid
     m.authMode = ""
@@ -8,6 +9,7 @@ sub init()
     m.homeScreen.observeField("openAccount", "onOpenAccount")
     m.loginScreen.observeField("submit", "onLoginSubmit")
     m.loginScreen.observeField("backRequested", "onLoginBackRequested")
+    m.loadingScreen.observeField("loadingFinished", "onLoadingFinished")
     m.accountScreen.observeField("backRequested", "onAccountBackRequested")
     m.accountScreen.observeField("removeRequested", "onRemoveAccountRequested")
 
@@ -34,6 +36,8 @@ sub layoutScene()
     m.homeScreen.height = height
     m.loginScreen.width = width
     m.loginScreen.height = height
+    m.loadingScreen.width = width
+    m.loadingScreen.height = height
     m.accountScreen.width = width
     m.accountScreen.height = height
 end sub
@@ -58,7 +62,7 @@ sub onAuthResult(event as object)
         m.currentCredentials = result.credentials
         saveCredentials(m.currentCredentials)
         m.loginScreen.statusMessage = "Conectado com sucesso."
-        showHomeScreen()
+        showLoadingScreen()
     else
         if m.authMode = "startup" then clearSavedCredentials()
         m.loginScreen.statusMessage = result.message
@@ -70,14 +74,24 @@ end sub
 
 sub showHomeScreen()
     m.loginScreen.visible = false
+    m.loadingScreen.visible = false
     m.accountScreen.visible = false
     m.homeScreen.visible = true
     m.homeScreen.callFunc("setHomeFocus")
     PRINT "HOME_SCREEN_OPENED"
 end sub
 
+sub showLoadingScreen()
+    m.homeScreen.visible = false
+    m.loginScreen.visible = false
+    m.accountScreen.visible = false
+    m.loadingScreen.visible = true
+    m.loadingScreen.callFunc("startLoading")
+end sub
+
 sub showLoginScreen(message as string)
     m.homeScreen.visible = false
+    m.loadingScreen.visible = false
     m.accountScreen.visible = false
     m.loginScreen.visible = true
     m.loginScreen.statusMessage = message
@@ -88,6 +102,7 @@ end sub
 sub showAccountScreen()
     m.homeScreen.visible = false
     m.loginScreen.visible = false
+    m.loadingScreen.visible = false
     m.accountScreen.visible = true
     account = { status: "Conectado" }
     if m.currentCredentials <> invalid
@@ -97,6 +112,10 @@ sub showAccountScreen()
     m.accountScreen.account = account
     m.accountScreen.callFunc("setAccountFocus")
     PRINT "ACCOUNT_SCREEN_OPENED"
+end sub
+
+sub onLoadingFinished()
+    showHomeScreen()
 end sub
 
 sub onOpenAccount()

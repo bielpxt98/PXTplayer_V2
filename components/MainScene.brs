@@ -1,12 +1,18 @@
 sub init()
-    m.blackRect = m.top.findNode("blackRect")
-    m.titleLabel = m.top.findNode("titleLabel")
+    m.homeScreen = m.top.findNode("homeScreen")
+
+    m.homeScreen.observeField("openLive", "onOpenLive")
+    m.homeScreen.observeField("openMovies", "onOpenMovies")
+    m.homeScreen.observeField("openSeries", "onOpenSeries")
+    m.homeScreen.observeField("openPlaylist", "onOpenPlaylist")
 
     m.top.observeField("width", "layoutScene")
     m.top.observeField("height", "layoutScene")
     layoutScene()
 
-    m.top.setFocus(true)
+    m.homeScreen.visible = true
+    m.homeScreen.callFunc("setHomeFocus")
+    PRINT "HOME_SCREEN_OPENED"
 end sub
 
 sub layoutScene()
@@ -16,11 +22,22 @@ sub layoutScene()
     if width = invalid or width <= 0 then width = 1920
     if height = invalid or height <= 0 then height = 1080
 
-    m.blackRect.width = width
-    m.blackRect.height = height
+    m.homeScreen.width = width
+    m.homeScreen.height = height
+end sub
 
-    m.titleLabel.width = width
-    m.titleLabel.height = height
-    m.titleLabel.translation = [0, 0]
-    m.titleLabel.font = "font:MediumBoldSystemFont"
+sub onOpenLive()
+    PRINT "HOME_OPEN_LIVE"
+end sub
+
+sub onOpenMovies()
+    PRINT "HOME_OPEN_MOVIES"
+end sub
+
+sub onOpenSeries()
+    PRINT "HOME_OPEN_SERIES"
+end sub
+
+sub onOpenPlaylist()
+    PRINT "HOME_OPEN_PLAYLIST"
 end sub

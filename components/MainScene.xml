@@ -2,7 +2,6 @@
 <component name="MainScene" extends="Scene">
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
   <children>
-    <Rectangle id="blackRect" color="#000000" />
-    <Label id="titleLabel" text="PXT PLAYER" color="#FFFFFF" horizAlign="center" vertAlign="center" />
+    <HomeScreen id="homeScreen" />
   </children>
 </component>

@@ -1,219 +1,74 @@
 sub init()
-    m.top.functionName = "runRequest"
+    m.top.functionName = "connect"
 end sub
 
-function connect(account as object) as void
-    if account = invalid
-        publishResult({ request: "connect", success: false, code: "invalid_request", message: "Usuario ou senha invalidos." })
-        return
-    end if
-    m.top.action = "connect"
-    m.top.dns = account.dns
-    m.top.username = account.username
-    m.top.password = account.password
-    m.top.request = { action: "connect", dns: account.dns, username: account.username, password: account.password }
-    m.top.control = "RUN"
-end function
+sub onRequestChanged()
+    if m.top.request <> invalid then m.top.control = "RUN"
+end sub
 
-function getSeriesCategories(account as object) as void
-    if account = invalid
-        publishResult({ request: "getSeriesCategories", success: false, code: "invalid_request", message: "Nao foi possivel carregar categorias." })
-        return
-    end if
-    m.top.action = "getSeriesCategories"
-    m.top.dns = account.dns
-    m.top.username = account.username
-    m.top.password = account.password
-    m.top.request = { action: "getSeriesCategories", dns: account.dns, username: account.username, password: account.password }
-    m.top.control = "RUN"
-end function
-
-function getSeries(options as object) as void
-    if options = invalid or options.account = invalid
-        publishResult({ request: "getSeries", success: false, code: "invalid_request", message: "Nao foi possivel carregar series." })
-        return
-    end if
-    m.top.action = "getSeries"
-    m.top.dns = options.account.dns
-    m.top.username = options.account.username
-    m.top.password = options.account.password
-    m.top.category_id = options.category_id
-    m.top.request = { action: "getSeries", dns: options.account.dns, username: options.account.username, password: options.account.password, category_id: options.category_id }
-    m.top.control = "RUN"
-end function
-
-sub runRequest()
+sub connect()
     request = m.top.request
-    action = PxtTrim(m.top.action)
-    if action <> "" then
-        request = { action: action, dns: m.top.dns, username: m.top.username, password: m.top.password, category_id: m.top.category_id }
-    end if
-    if request = invalid
-        publishResult({ request: "unknown", success: false, code: "invalid_request", message: "Requisicao invalida." })
-        return
-    end if
-
-    action = PxtTrim(request.action)
-    if action = "connect"
-        connectRequest(request)
-    else if action = "getSeriesCategories"
-        getSeriesCategoriesRequest(request)
-    else if action = "getSeries"
-        getSeriesRequest(request)
-    else
-        publishResult({ request: action, success: false, code: "invalid_request", message: "Requisicao invalida." })
-    end if
-end sub
-
-sub connectRequest(request as object)
-    PRINT "XTREAM_CONNECT_START dns=" + NormalizeDns(request.dns)
-    if NormalizeDns(request.dns) = "" or PxtTrim(request.username) = "" or PxtTrim(request.password) = ""
-        PRINT "XTREAM_CONNECT_ERROR invalid_credentials"
-        publishResult({ request: "connect", success: false, code: "invalid_request", message: "Preencha DNS, usuario e senha." })
-        return
-    end if
-    json = fetchJson(request, "connect", invalid)
-    if json = invalid then return
-
-    auth = invalid
-    if Type(json) = "roAssociativeArray" then auth = json.user_info
-    if Type(auth) = "roAssociativeArray" and auth.auth <> invalid and auth.auth.ToStr() = "1"
-        PRINT "XTREAM_CONNECT_SUCCESS"
-        publishResult({ request: "connect", success: true, account: { dns: NormalizeDns(request.dns), username: PxtTrim(request.username), password: PxtTrim(request.password) } })
-    else
-        PRINT "XTREAM_CONNECT_ERROR invalid_login"
-        publishResult({ request: "connect", success: false, code: "invalid_login", message: "Usuario ou senha invalidos." })
-    end if
-end sub
-
-sub getSeriesCategoriesRequest(request as object)
-    PRINT "SERIES_CATEGORIES_ENDPOINT action=get_series_categories"
-    json = fetchJson(request, "get_series_categories", invalid)
-    if json = invalid then return
-    if Type(json) <> "roArray"
-        publishResult({ request: "getSeriesCategories", success: false, code: "invalid_response", error: "O servidor retornou categorias invalidas.", message: "O servidor retornou categorias invalidas." })
-        return
-    end if
-    PRINT "SERIES_CATEGORIES_RECEIVED " + json.Count().ToStr()
-    publishResult({ request: "getSeriesCategories", success: true, data: json })
-end sub
-
-sub getSeriesRequest(request as object)
-    params = invalid
-    categoryId = PxtTrim(request.category_id)
-    if categoryId = ""
-        PRINT "SERIES_CATALOG_ENDPOINT action=get_series"
-    else
-        PRINT "SERIES_CATALOG_ENDPOINT action=get_series category_id=" + categoryId
-        params = { category_id: categoryId }
-    end if
-    json = fetchJson(request, "get_series", params)
-    if json = invalid then return
-    if Type(json) <> "roArray"
-        publishResult({ request: "getSeries", success: false, code: "invalid_response", error: "O servidor retornou series invalidas.", message: "O servidor retornou series invalidas." })
-        return
-    end if
-    PRINT "SERIES_ITEMS_RECEIVED " + json.Count().ToStr()
-    publishResult({ request: "getSeries", success: true, data: json, category_id: PxtTrim(request.category_id) })
-end sub
-
-sub publishResult(result as object)
-    if result = invalid then return
-    if result.request = "getSeriesCategories" then PRINT "XTREAM_GET_SERIES_CATEGORIES_RESULT"
-    m.top.result = result
-end sub
-
-function fetchJson(request as object, action as string, params as dynamic) as dynamic
     dns = NormalizeDns(request.dns)
     if dns = ""
-        PRINT "XTREAM_REQUEST_ERROR invalid_dns action=" + action
-        publishResult({ success: false, request: requestNameForAction(action), code: "invalid_response", error: "O servidor retornou uma resposta invalida.", message: "O servidor retornou uma resposta invalida." })
-        return invalid
+        m.top.result = { success: false, code: "invalid_response", message: "O servidor retornou uma resposta inválida." }
+        return
     end if
 
-    url = dns + "/player_api.php?username=" + UrlEncodeParam(PxtTrim(request.username)) + "&password=" + UrlEncodeParam(PxtTrim(request.password))
-    if action <> "" and action <> "connect" then url = url + "&action=" + UrlEncodeParam(action)
-    if params <> invalid
-        for each k in params
-            url = url + "&" + k + "=" + UrlEncodeParam(params[k])
-        end for
-    end if
-
+    url = dns + "/player_api.php?username=" + UrlEncodeParam(request.username) + "&password=" + UrlEncodeParam(request.password)
     transfer = CreateObject("roUrlTransfer")
     transfer.SetUrl(url)
     transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
     transfer.InitClientCertificates()
     transfer.SetRequest("GET")
-    timeoutMs = requestTimeoutMs(action)
-    transfer.SetMinimumTransferRate(1, timeoutMs / 1000)
+    transfer.SetMinimumTransferRate(1, 15)
     transfer.RetainBodyOnError(false)
+
     port = CreateObject("roMessagePort")
     transfer.SetMessagePort(port)
-
     if not transfer.AsyncGetToString()
-        PRINT "XTREAM_REQUEST_ERROR async_start action=" + action
-        publishResult({ success: false, request: requestNameForAction(action), code: "network", error: networkMessage(action), message: networkMessage(action) })
-        return invalid
+        m.top.result = { success: false, code: "network", message: "Não foi possível conectar ao servidor." }
+        return
     end if
 
-    msg = wait(timeoutMs, port)
+    msg = wait(15000, port)
     if msg = invalid
         transfer.AsyncCancel()
-        PRINT "XTREAM_REQUEST_TIMEOUT action=" + action
-        publishResult({ success: false, request: requestNameForAction(action), code: "timeout", error: timeoutMessage(action), message: timeoutMessage(action) })
-        return invalid
+        m.top.result = { success: false, code: "timeout", message: "Tempo de conexão esgotado. Verifique o servidor." }
+        return
     end if
 
     statusCode = msg.GetResponseCode()
     if statusCode < 200 or statusCode >= 300
-        PRINT "XTREAM_REQUEST_HTTP_ERROR action=" + action + " status=" + statusCode.ToStr()
-        publishResult({ success: false, request: requestNameForAction(action), code: "network", error: networkMessage(action), message: networkMessage(action) })
-        return invalid
+        m.top.result = { success: false, code: "network", message: "Não foi possível conectar ao servidor." }
+        return
     end if
 
     body = msg.GetString()
     if body = invalid or body.Trim() = ""
-        PRINT "XTREAM_REQUEST_EMPTY action=" + action
-        publishResult({ success: false, request: requestNameForAction(action), code: "invalid_json", error: invalidMessage(action), message: invalidMessage(action) })
-        return invalid
+        m.top.result = { success: false, code: "invalid_response", message: "O servidor retornou uma resposta inválida." }
+        return
     end if
 
     json = ParseJson(body)
-    if json = invalid
-        PRINT "XTREAM_REQUEST_INVALID_JSON action=" + action
-        publishResult({ success: false, request: requestNameForAction(action), code: "invalid_json", error: invalidMessage(action), message: invalidMessage(action) })
-        return invalid
+    if json = invalid or json.user_info = invalid
+        m.top.result = { success: false, code: "invalid_response", message: "O servidor retornou uma resposta inválida." }
+        return
     end if
 
-    return json
-end function
+    if isValidXtreamAuth(json.user_info)
+        m.top.result = { success: true, code: "success", dns: dns, username: PxtTrim(request.username), password: PxtTrim(request.password) }
+    else
+        m.top.result = { success: false, code: "invalid_credentials", message: "Usuário ou senha inválidos." }
+    end if
+end sub
 
-function requestNameForAction(action as string) as string
-    if action = "get_series_categories" then return "getSeriesCategories"
-    if action = "get_series" then return "getSeries"
-    return action
-end function
-
-function networkMessage(action as string) as string
-    if action = "get_series" then return "Nao foi possivel carregar series."
-    if action = "get_series_categories" then return "Nao foi possivel carregar categorias."
-    return "Não foi possível conectar ao servidor."
-end function
-
-function timeoutMessage(action as string) as string
-    if action = "get_series_categories" then return "Tempo esgotado ao carregar categorias."
-    if action = "get_series" then return "Tempo esgotado ao carregar series."
-    return "Tempo de conexão esgotado. Verifique o servidor."
-end function
-
-function requestTimeoutMs(action as string) as integer
-    if action = "get_series_categories" then return 30000
-    if action = "get_series" then return 60000
-    return 15000
-end function
-
-function invalidMessage(action as string) as string
-    if action = "get_series_categories" then return "O servidor retornou categorias invalidas."
-    if action = "get_series" then return "O servidor retornou series invalidas."
-    return "O servidor retornou uma resposta inválida."
+function isValidXtreamAuth(userInfo as object) as boolean
+    if userInfo.auth <> invalid
+        authText = LCase(userInfo.auth.ToStr())
+        if authText = "1" or authText = "true" then return true
+    end if
+    if userInfo.status <> invalid
+        if LCase(userInfo.status.ToStr()) = "active" then return true
+    end if
+    return false
 end function

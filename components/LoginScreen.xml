@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="LoginScreen" extends="Group">
+  <interface>
+    <field id="submit" type="assocarray" alwaysNotify="true" />
+    <field id="backRequested" type="boolean" alwaysNotify="true" />
+    <function name="setLoginFocus" />
+  </interface>
+  <script type="text/brightscript" uri="pkg:/components/LoginScreen.brs" />
+  <children>
+    <Rectangle id="background" color="0x000000FF" />
+    <Label id="titleLabel" text="LOGIN" color="0xFFFFFFFF" horizAlign="center" font="font:LargeBoldSystemFont" />
+
+    <Group id="formGroup">
+      <Label id="dnsLabel" text="DNS" color="0xD8E6FFFF" font="font:MediumBoldSystemFont" />
+      <Rectangle id="dnsBox" width="720" height="70" color="0x102033FF" />
+      <Label id="dnsText" width="680" height="70" color="0xFFFFFFFF" vertAlign="center" font="font:MediumSystemFont" />
+
+      <Label id="usernameLabel" text="USUÁRIO" color="0xD8E6FFFF" font="font:MediumBoldSystemFont" />
+      <Rectangle id="usernameBox" width="720" height="70" color="0x102033FF" />
+      <Label id="usernameText" width="680" height="70" color="0xFFFFFFFF" vertAlign="center" font="font:MediumSystemFont" />
+
+      <Label id="passwordLabel" text="SENHA" color="0xD8E6FFFF" font="font:MediumBoldSystemFont" />
+      <Rectangle id="passwordBox" width="720" height="70" color="0x102033FF" />
+      <Label id="passwordText" width="680" height="70" color="0xFFFFFFFF" vertAlign="center" font="font:MediumSystemFont" />
+
+      <HomeButton id="enterButton" labelText="ENTRAR" />
+      <HomeButton id="backButton" labelText="VOLTAR" />
+    </Group>
+  </children>
+</component>

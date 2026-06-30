@@ -3,15 +3,18 @@ sub init()
     m.loginScreen = m.top.findNode("loginScreen")
     m.loadingScreen = m.top.findNode("loadingScreen")
     m.accountScreen = m.top.findNode("accountScreen")
+    m.liveTVScreen = m.top.findNode("liveTVScreen")
     m.currentCredentials = invalid
     m.authMode = ""
 
+    m.homeScreen.observeField("openLiveTV", "onOpenLiveTV")
     m.homeScreen.observeField("openAccount", "onOpenAccount")
     m.loginScreen.observeField("submit", "onLoginSubmit")
     m.loginScreen.observeField("backRequested", "onLoginBackRequested")
     m.loadingScreen.observeField("loadingFinished", "onLoadingFinished")
     m.accountScreen.observeField("backRequested", "onAccountBackRequested")
     m.accountScreen.observeField("removeRequested", "onRemoveAccountRequested")
+    m.liveTVScreen.observeField("backRequested", "onLiveTVBackRequested")
 
     m.top.observeField("width", "layoutScene")
     m.top.observeField("height", "layoutScene")
@@ -40,6 +43,8 @@ sub layoutScene()
     m.loadingScreen.height = height
     m.accountScreen.width = width
     m.accountScreen.height = height
+    m.liveTVScreen.width = width
+    m.liveTVScreen.height = height
 end sub
 
 sub validateCredentials(credentials as object, mode as string)
@@ -76,6 +81,7 @@ sub showHomeScreen()
     m.loginScreen.visible = false
     m.loadingScreen.visible = false
     m.accountScreen.visible = false
+    m.liveTVScreen.visible = false
     m.homeScreen.visible = true
     m.homeScreen.callFunc("setHomeFocus")
     PRINT "HOME_SCREEN_OPENED"
@@ -85,6 +91,7 @@ sub showLoadingScreen()
     m.homeScreen.visible = false
     m.loginScreen.visible = false
     m.accountScreen.visible = false
+    m.liveTVScreen.visible = false
     m.loadingScreen.visible = true
     m.loadingScreen.callFunc("startLoading")
 end sub
@@ -93,6 +100,7 @@ sub showLoginScreen(message as string)
     m.homeScreen.visible = false
     m.loadingScreen.visible = false
     m.accountScreen.visible = false
+    m.liveTVScreen.visible = false
     m.loginScreen.visible = true
     m.loginScreen.statusMessage = message
     m.loginScreen.callFunc("setLoginFocus")
@@ -103,6 +111,7 @@ sub showAccountScreen()
     m.homeScreen.visible = false
     m.loginScreen.visible = false
     m.loadingScreen.visible = false
+    m.liveTVScreen.visible = false
     m.accountScreen.visible = true
     account = { status: "Conectado" }
     if m.currentCredentials <> invalid
@@ -114,8 +123,24 @@ sub showAccountScreen()
     PRINT "ACCOUNT_SCREEN_OPENED"
 end sub
 
+
+sub showLiveTVScreen()
+    m.homeScreen.visible = false
+    m.loginScreen.visible = false
+    m.loadingScreen.visible = false
+    m.accountScreen.visible = false
+    m.liveTVScreen.visible = true
+    m.liveTVScreen.credentials = m.currentCredentials
+    m.liveTVScreen.callFunc("setLiveTVFocus")
+    PRINT "LIVE_TV_SCREEN_OPENED"
+end sub
+
 sub onLoadingFinished()
     showHomeScreen()
+end sub
+
+sub onOpenLiveTV()
+    showLiveTVScreen()
 end sub
 
 sub onOpenAccount()
@@ -133,6 +158,10 @@ sub onLoginBackRequested()
 end sub
 
 sub onAccountBackRequested()
+    showHomeScreen()
+end sub
+
+sub onLiveTVBackRequested()
     showHomeScreen()
 end sub
 

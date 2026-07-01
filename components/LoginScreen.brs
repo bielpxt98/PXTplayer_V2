@@ -52,10 +52,7 @@ sub updateFocus()
         m.backBg.color = "#303038"
     end if
 
-    if m.focusIndex = 0 then m.dnsInput.SetFocus(true)
-    if m.focusIndex = 1 then m.usernameInput.SetFocus(true)
-    if m.focusIndex = 2 then m.passwordInput.SetFocus(true)
-    if m.focusIndex > 2 then m.top.SetFocus(true)
+    m.top.SetFocus(true)
 end sub
 
 sub moveFocus(delta as integer)
@@ -160,6 +157,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     normalizedKey = LCase(key)
     if normalizedKey = "enter" then normalizedKey = "ok"
+    if normalizedKey = "select" then normalizedKey = "ok"
     if normalizedKey = "escape" or normalizedKey = "backspace" then normalizedKey = "back"
 
     if m.top.GetScene().dialog <> invalid
@@ -179,10 +177,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
     else if normalizedKey = "up"
         moveFocus(-1)
         return true
-    else if normalizedKey = "left" and m.focusIndex = 4
+    else if normalizedKey = "left"
         moveFocus(-1)
         return true
-    else if normalizedKey = "right" and m.focusIndex = 3
+    else if normalizedKey = "right"
         moveFocus(1)
         return true
     else if normalizedKey = "ok"

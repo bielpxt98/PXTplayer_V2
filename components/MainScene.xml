@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="MainScene" extends="Scene">
   <script type="text/brightscript" uri="pkg:/components/MainScene.brs" />
+  <script type="text/brightscript" uri="pkg:/source/PlaylistStorage.brs" />
   <children>
-    <HomeScreen id="homeScreen" visible="false" />
-    <LoginScreen id="loginScreen" visible="false" />
-    <LoadingScreen id="loadingScreen" visible="false" />
-    <AccountScreen id="accountScreen" visible="false" />
-    <LiveTVScreen id="liveTVScreen" visible="false" />
+    <Rectangle id="background" width="1920" height="1080" color="#101014" />
+    <HomeScreen id="home" />
+    <LoginScreen id="login" visible="false" />
   </children>
 </component>

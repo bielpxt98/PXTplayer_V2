@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="HomeScreen" extends="Group">
-  <interface>
-    <field id="openLiveTV" type="boolean" alwaysNotify="true" />
-    <field id="openAccount" type="boolean" alwaysNotify="true" />
-    <function name="setHomeFocus" />
-  </interface>
   <script type="text/brightscript" uri="pkg:/components/HomeScreen.brs" />
+  <interface>
+    <field id="openLogin" type="boolean" alwaysNotify="true" />
+    <function name="setStatus" />
+  </interface>
   <children>
-    <Rectangle id="background" color="0x000000FF" />
-    <Label id="logoLabel" text="PXT PLAYER" color="0xFFFFFFFF" horizAlign="center" font="font:LargeBoldSystemFont" />
-    <HomeButton id="liveTVButton" labelText="TV AO VIVO" />
-    <HomeButton id="accountButton" labelText="CONTA" />
+    <Label id="title" text="PXT Player" translation="[120,90]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
+    <Rectangle id="playlistButtonBg" translation="[120,210]" width="560" height="86" color="#243B65" />
+    <Label id="playlistButton" text="LISTA DE REPRODUÇÃO" translation="[150,236]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <Label id="status" translation="[120,330]" color="#7CFC98" font="font:MediumSystemFont" />
   </children>
 </component>

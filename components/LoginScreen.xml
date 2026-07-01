@@ -1,41 +1,31 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="LoginScreen" extends="Group">
-  <interface>
-    <field id="submit" type="assocarray" alwaysNotify="true" />
-    <field id="backRequested" type="boolean" alwaysNotify="true" />
-    <field id="busy" type="boolean" onChange="onBusyChanged" />
-    <field id="statusMessage" type="string" onChange="onStatusMessageChanged" />
-    <function name="setLoginFocus" />
-  </interface>
   <script type="text/brightscript" uri="pkg:/components/LoginScreen.brs" />
+  <script type="text/brightscript" uri="pkg:/source/PlaylistStorage.brs" />
+  <interface>
+    <field id="closeLogin" type="boolean" alwaysNotify="true" />
+    <field id="loginSuccess" type="boolean" alwaysNotify="true" />
+    <function name="resetStatus" />
+  </interface>
   <children>
-    <Rectangle id="background" color="0x000000FF" />
-    <Label id="titleLabel" text="LOGIN" color="0xFFFFFFFF" horizAlign="center" font="font:LargeBoldSystemFont" />
+    <Label text="Login Xtream" translation="[120,70]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
 
-    <Group id="formGroup">
-      <Label id="dnsLabel" text="DNS" color="0xD8E6FFFF" font="font:MediumBoldSystemFont" />
-      <Rectangle id="dnsBox" width="720" height="70" color="0x102033FF" />
-      <Label id="dnsText" width="680" height="70" color="0xFFFFFFFF" vertAlign="center" font="font:MediumSystemFont" />
+    <Label text="DNS" translation="[120,160]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <TextEditBox id="dnsInput" translation="[120,205]" width="1120" height="72" hintText="http://servidor:porta" maxTextLength="512" />
 
-      <Label id="usernameLabel" text="USUÁRIO" color="0xD8E6FFFF" font="font:MediumBoldSystemFont" />
-      <Rectangle id="usernameBox" width="720" height="70" color="0x102033FF" />
-      <Label id="usernameText" width="680" height="70" color="0xFFFFFFFF" vertAlign="center" font="font:MediumSystemFont" />
+    <Label text="USUÁRIO" translation="[120,305]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <TextEditBox id="usernameInput" translation="[120,350]" width="720" height="72" hintText="Usuário" maxTextLength="128" />
 
-      <Label id="passwordLabel" text="SENHA" color="0xD8E6FFFF" font="font:MediumBoldSystemFont" />
-      <Rectangle id="passwordBox" width="720" height="70" color="0x102033FF" />
-      <Label id="passwordText" width="680" height="70" color="0xFFFFFFFF" vertAlign="center" font="font:MediumSystemFont" />
+    <Label text="SENHA" translation="[120,450]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <TextEditBox id="passwordInput" translation="[120,495]" width="720" height="72" hintText="Senha" maxTextLength="128" secureMode="true" />
 
-      <Label id="statusLabel" width="720" height="44" color="0xFFFFFFFF" horizAlign="center" font="font:MediumSystemFont" />
-      <HomeButton id="enterButton" labelText="ENTRAR" />
-      <HomeButton id="backButton" labelText="VOLTAR" />
-    </Group>
+    <Rectangle id="enterBg" translation="[120,630]" width="260" height="72" color="#243B65" />
+    <Label id="enterLabel" text="ENTRAR" translation="[182,651]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
 
-    <Group id="keyboardGroup" visible="false">
-      <Rectangle id="keyboardBackground" width="1120" height="560" color="0x07111FFF" />
-      <Label id="keyboardTitle" width="1120" height="60" color="0xFFFFFFFF" horizAlign="center" vertAlign="center" font="font:MediumBoldSystemFont" />
-      <Rectangle id="keyboardInputBox" width="1020" height="64" color="0x102033FF" />
-      <Label id="keyboardInputText" width="980" height="64" color="0xFFFFFFFF" vertAlign="center" font="font:MediumSystemFont" />
-      <Group id="keyboardKeysGroup" />
-    </Group>
+    <Rectangle id="backBg" translation="[420,630]" width="260" height="72" color="#303038" />
+    <Label id="backLabel" text="VOLTAR" translation="[485,651]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+
+    <Label id="status" translation="[120,735]" width="1200" color="#FFFFFF" font="font:MediumSystemFont" />
+    <XtreamService id="service" />
   </children>
 </component>

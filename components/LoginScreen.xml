@@ -19,16 +19,16 @@
     <TextEditBox id="usernameInput" translation="[120,350]" width="720" height="72" hintText="Usuário" maxTextLength="128" />
 
     <Label text="SENHA" translation="[120,450]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
-    <TextEditBox id="passwordInput" translation="[120,495]" width="720" height="72" hintText="Senha" maxTextLength="128" secureMode="true" />
+    <TextEditBox id="passwordInput" translation="[120,495]" width="720" height="72" hintText="Senha" maxTextLength="128" />
 
-    <Rectangle id="enterBg" translation="[120,630]" width="260" height="72" color="#243B65" />
-    <Label id="enterLabel" text="ENTRAR" translation="[182,651]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <Label id="status" translation="[120,585]" width="1040" height="40" wrap="true" color="#FFFFFF" font="font:MediumSystemFont" />
 
-    <Rectangle id="backBg" translation="[420,630]" width="260" height="72" color="#303038" />
-    <Label id="backLabel" text="VOLTAR" translation="[485,651]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <Rectangle id="enterBg" translation="[120,630]" width="260" height="64" color="#243B65" />
+    <Label id="enterLabel" text="ENTRAR" translation="[182,649]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
 
-    <Label id="status" translation="[120,735]" width="1200" height="170" wrap="true" color="#FFFFFF" font="font:MediumSystemFont" />
+    <Rectangle id="backBg" translation="[420,630]" width="260" height="64" color="#303038" />
+    <Label id="backLabel" text="VOLTAR" translation="[485,649]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+
     <XtreamService id="service" />
-    <KeyboardDialog id="keyboard" />
   </children>
 </component>

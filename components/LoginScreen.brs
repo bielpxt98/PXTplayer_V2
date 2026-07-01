@@ -7,22 +7,57 @@ sub init()
     m.backBg = m.top.FindNode("backBg")
     m.status = m.top.FindNode("status")
     m.service = m.top.FindNode("service")
-    m.keyboard = m.top.FindNode("keyboard")
+    m.keyboard = invalid
     m.service.ObserveField("result", "onServiceResult")
     m.service.ObserveField("progress", "onServiceProgress")
     m.service.ObserveField("debug", "onServiceDebug")
-    m.keyboard.ObserveField("buttonSelected", "onKeyboardButton")
 
     saved = LoadXtreamCredentials()
-    m.dnsInput.text = saved.dns
-    m.usernameInput.text = saved.username
-    m.passwordInput.text = saved.password
+    m.dnsValue = saved.dns
+    m.usernameValue = saved.username
+    m.passwordValue = saved.password
+    syncInputText()
 
     m.focusIndex = 0
     m.editingIndex = -1
     m.loginInProgress = false
     m.editOriginalValue = ""
+    m.closingKeyboard = false
     updateFocus()
+end sub
+
+function maskText(value as string) as string
+    if value = invalid or value = "" then return ""
+    masked = ""
+    for i = 1 to Len(value)
+        masked = masked + "*"
+    end for
+    return masked
+end function
+
+sub syncInputText()
+    m.dnsInput.text = m.dnsValue
+    m.usernameInput.text = m.usernameValue
+    m.passwordInput.text = maskText(m.passwordValue)
+end sub
+
+function getValueForIndex(index as integer) as string
+    if index = 0 then return m.dnsValue
+    if index = 1 then return m.usernameValue
+    if index = 2 then return m.passwordValue
+    return ""
+end function
+
+sub setValueForIndex(index as integer, value as string)
+    if value = invalid then value = ""
+    if index = 0
+        m.dnsValue = value
+    else if index = 1
+        m.usernameValue = value
+    else if index = 2
+        m.passwordValue = value
+    end if
+    syncInputText()
 end sub
 
 sub resetStatus()
@@ -92,23 +127,62 @@ sub openKeyboard()
     end if
 
     m.editingIndex = m.focusIndex
-    m.editOriginalValue = input.text
+    m.editOriginalValue = getValueForIndex(m.editingIndex)
+
+    if m.keyboard <> invalid
+        m.keyboard.UnobserveField("buttonSelected")
+    end if
+
+    m.keyboard = CreateObject("roSGNode", "KeyboardDialog")
+    if m.editingIndex = 0
+        m.keyboard.title = "DNS"
+    else if m.editingIndex = 1
+        m.keyboard.title = "Usuário"
+    else
+        m.keyboard.title = "Senha"
+    end if
+    m.keyboard.text = m.editOriginalValue
+    m.keyboard.buttons = ["OK", "Cancelar"]
+    m.keyboard.ObserveField("buttonSelected", "onKeyboardButton")
+    m.keyboard.ObserveField("wasClosed", "onKeyboardClosed")
+
     input.active = true
-    input.SetFocus(true)
+    scene = m.top.GetScene()
+    scene.dialog = m.keyboard
 end sub
 
 sub closeKeyboard(applyValue as boolean)
-    input = getEditingInput()
-    if input <> invalid and applyValue <> true
-        input.text = m.editOriginalValue
+    if m.closingKeyboard = true then return
+    m.closingKeyboard = true
+
+    if m.editingIndex >= 0
+        if applyValue = true and m.keyboard <> invalid
+            setValueForIndex(m.editingIndex, m.keyboard.text)
+        else
+            setValueForIndex(m.editingIndex, m.editOriginalValue)
+        end if
+        m.focusIndex = m.editingIndex
     end if
-    if m.editingIndex >= 0 then m.focusIndex = m.editingIndex
+
+    scene = m.top.GetScene()
+    if scene <> invalid then scene.dialog = invalid
+    if m.keyboard <> invalid
+        m.keyboard.UnobserveField("buttonSelected")
+        m.keyboard.UnobserveField("wasClosed")
+    end if
+    m.keyboard = invalid
     m.editingIndex = -1
     m.editOriginalValue = ""
+    m.closingKeyboard = false
     updateFocus()
 end sub
 
+sub onKeyboardClosed()
+    if m.closingKeyboard <> true then closeKeyboard(false)
+end sub
+
 sub onKeyboardButton()
+    if m.keyboard = invalid then return
     if m.keyboard.buttonSelected = 0
         closeKeyboard(true)
     else if m.keyboard.buttonSelected = 1
@@ -119,9 +193,9 @@ end sub
 sub submitLogin()
     if m.loginInProgress = true then return
 
-    dns = Trim(m.dnsInput.text)
-    username = Trim(m.usernameInput.text)
-    password = m.passwordInput.text
+    dns = Trim(m.dnsValue)
+    username = Trim(m.usernameValue)
+    password = m.passwordValue
 
     if dns = "" or username = "" or password = ""
         m.status.color = "#FFB347"
@@ -178,71 +252,6 @@ sub onServiceResult()
 end sub
 
 
-function textCharacterFromKey(key as string) as string
-    if key = invalid then return ""
-
-    rawKey = key
-    lowerKey = LCase(rawKey)
-
-    if Len(rawKey) = 1
-        code = Asc(rawKey)
-        if (code >= 32 and code <= 126) then return rawKey
-    end if
-
-    if Left(lowerKey, 4) = "lit_" and Len(rawKey) = 5
-        return Mid(rawKey, 5, 1)
-    end if
-
-    if Left(lowerKey, 4) = "key" and Len(rawKey) = 4
-        digit = Mid(rawKey, 4, 1)
-        if digit >= "0" and digit <= "9" then return digit
-    end if
-
-    if Left(lowerKey, 6) = "numpad" and Len(rawKey) = 7
-        digit = Mid(rawKey, 7, 1)
-        if digit >= "0" and digit <= "9" then return digit
-    end if
-
-    if lowerKey = "space" then return " "
-    if lowerKey = "period" or lowerKey = "numpaddecimal" or lowerKey = "decimal" or lowerKey = "kpdecimal" then return "."
-    if lowerKey = "slash" or lowerKey = "forwardslash" then return "/"
-    if lowerKey = "colon" then return ":"
-    if lowerKey = "semicolon" then return ":"
-    if lowerKey = "minus" or lowerKey = "hyphen" or lowerKey = "dash" then return "-"
-
-    return ""
-end function
-
-function handleTextEditingKey(key as string, normalizedKey as string) as boolean
-    input = getEditingInput()
-    if input = invalid then return false
-
-    if normalizedKey = "ok"
-        closeKeyboard(true)
-        return true
-    else if normalizedKey = "back" and LCase(key) <> "backspace"
-        closeKeyboard(false)
-        return true
-    else if LCase(key) = "escape"
-        closeKeyboard(false)
-        return true
-    else if LCase(key) = "backspace"
-        if Len(input.text) > 0 then input.text = Left(input.text, Len(input.text) - 1)
-        return true
-    else if normalizedKey = "delete"
-        if Len(input.text) > 0 then input.text = Left(input.text, Len(input.text) - 1)
-        return true
-    end if
-
-    char = textCharacterFromKey(key)
-    if char <> ""
-        input.text = input.text + char
-        return true
-    end if
-
-    return false
-end function
-
 function isPointInsideNode(node as object, x as float, y as float) as boolean
     bounds = node.boundingRect()
     return x >= bounds.x and x <= (bounds.x + bounds.width) and y >= bounds.y and y <= (bounds.y + bounds.height)
@@ -290,15 +299,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     normalizedKey = NormalizeRemoteKey(key)
 
-    if m.editingIndex >= 0
-        return handleTextEditingKey(key, normalizedKey)
-    end if
-
     if m.top.GetScene().dialog <> invalid
-        if normalizedKey = "back"
-            closeKeyboard(false)
-            return true
-        end if
         return false
     end if
 

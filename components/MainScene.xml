@@ -8,11 +8,12 @@
     <LoginScreen id="login" visible="false" />
     <Group id="loading" visible="false">
       <Label text="PXT Player" translation="[120,90]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
-      <Label id="loadingTitle" text="Carregando lista..." translation="[120,230]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
-      <Label id="loadingStatus" text="Conectando conta..." translation="[120,310]" width="1200" color="#FFFFFF" font="font:MediumSystemFont" />
-      <Label id="loadingHint" text="Aguarde. A interface será liberada após validar as categorias básicas." translation="[120,370]" width="1300" color="#B8B8C8" font="font:MediumSystemFont" />
+      <Label id="loadingTitle" text="Conectando..." translation="[120,230]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
+      <Label id="loadingStatus" text="Conectando..." translation="[120,310]" width="1200" color="#FFFFFF" font="font:MediumSystemFont" />
+      <Label id="loadingHint" text="Aguarde enquanto validamos o login." translation="[120,370]" width="1300" color="#B8B8C8" font="font:MediumSystemFont" />
     </Group>
     <XtreamService id="startupService" />
     <Timer id="startupTimeout" repeat="false" duration="35" />
+    <Timer id="startupSuccessDelay" repeat="false" duration="0.8" />
   </children>
 </component>

@@ -5,6 +5,7 @@ sub init()
     m.loadingStatus = m.top.FindNode("loadingStatus")
     m.startupService = m.top.FindNode("startupService")
     m.startupTimeout = m.top.FindNode("startupTimeout")
+    m.startupSuccessDelay = m.top.FindNode("startupSuccessDelay")
     m.startupFinished = false
 
     m.home.ObserveField("openLogin", "showLogin")
@@ -13,6 +14,7 @@ sub init()
     m.startupService.ObserveField("progress", "onStartupProgress")
     m.startupService.ObserveField("result", "onStartupResult")
     m.startupTimeout.ObserveField("fire", "onStartupTimeout")
+    m.startupSuccessDelay.ObserveField("fire", "onStartupSuccessDelay")
 
     startInitialLoad()
 end sub
@@ -21,7 +23,7 @@ sub startInitialLoad()
     print "iniciando login automático"
     m.startupFinished = false
     credentials = EnsureXtreamCredentialsForTest()
-    showLoading("Carregando lista...")
+    showLoading("Conectando...")
     m.startupService.dns = credentials.dns
     m.startupService.username = credentials.username
     m.startupService.password = credentials.password
@@ -56,7 +58,7 @@ sub showLogin()
 end sub
 
 sub onLoginSuccess()
-    m.home.callFunc("setStatus", "Conectado")
+    m.home.callFunc("setStatus", "Login realizado com sucesso")
     showHome()
 end sub
 
@@ -74,14 +76,16 @@ sub onStartupResult()
     result = m.startupService.result
     if result <> invalid and result.success = true
         SaveXtreamCredentials(result.dns, result.username, result.password)
-        m.home.callFunc("setStatus", "Lista carregada com sucesso")
-        showHome()
+        m.loadingStatus.color = "#7CFC98"
+        m.loadingStatus.text = "Login realizado com sucesso"
+        m.home.callFunc("setStatus", "Login realizado com sucesso")
+        m.startupSuccessDelay.control = "start"
     else
         m.loadingStatus.color = "#FF6B6B"
         if result <> invalid and result.message <> invalid and result.message <> ""
             m.loadingStatus.text = result.message
         else
-            m.loadingStatus.text = "Não foi possível carregar a lista. Abra Conta para revisar o login."
+            m.loadingStatus.text = "Não foi possível conectar. Confira DNS, usuário e senha."
         end if
         m.home.navigationEnabled = true
         showLogin()
@@ -90,11 +94,15 @@ sub onStartupResult()
     end if
 end sub
 
+sub onStartupSuccessDelay()
+    showHome()
+end sub
+
 sub onStartupTimeout()
     if m.startupFinished = true then return
     m.startupFinished = true
     m.startupService.control = "STOP"
-    message = "Tempo esgotado ao carregar a lista. Confira a conexão ou revise sua conta."
+    message = "Tempo esgotado ao conectar. Confira a conexão ou revise sua conta."
     print "erro ocorrido: " + message
     m.loadingStatus.color = "#FF6B6B"
     m.loadingStatus.text = message

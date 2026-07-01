@@ -84,7 +84,7 @@ sub onServiceResult()
     if result <> invalid and result.success = true
         SaveXtreamCredentials(result.dns, result.username, result.password)
         m.status.color = "#7CFC98"
-        m.status.text = "Conectado"
+        m.status.text = "Login realizado com sucesso"
         m.top.loginSuccess = true
     else
         m.status.color = "#FF6B6B"

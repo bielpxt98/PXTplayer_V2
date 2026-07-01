@@ -3,6 +3,7 @@ sub init()
 end sub
 
 sub run()
+    PRINT "STEP 1 - START"
     result = { success: false, error: "network", message: "Não foi possível conectar ao servidor." }
 
     if m.top.action <> "connect"
@@ -11,6 +12,7 @@ sub run()
     end if
 
     dns = normalizeDns(m.top.dns)
+    PRINT "STEP 2 - DNS=" + dns
     username = m.top.username
     password = m.top.password
 
@@ -21,8 +23,10 @@ sub run()
 
     PRINT "XTREAM_CONNECT_START"
 
+    PRINT "STEP 3 - CREATE TRANSFER"
     transfer = CreateObject("roUrlTransfer")
     url = dns + "/player_api.php?username=" + transfer.Escape(username) + "&password=" + transfer.Escape(password)
+    PRINT "STEP 4 - URL=" + url
     port = CreateObject("roMessagePort")
     transfer.SetMessagePort(port)
     transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
@@ -31,19 +35,25 @@ sub run()
     transfer.SetRequest("GET")
     transfer.SetMinimumTransferRate(1, 10)
 
+    PRINT "STEP 5 - REQUEST"
     if transfer.AsyncGetToString() <> true
         PRINT "XTREAM_CONNECT_ERROR"
         publishResult(result)
         return
     end if
+    PRINT "STEP 6 - REQUEST SENT"
 
     event = wait(10000, port)
+    PRINT "STEP 7 - EVENT RECEIVED"
     if event = invalid
         transfer.AsyncCancel()
+        PRINT "STEP 7A - TIMEOUT"
         PRINT "XTREAM_CONNECT_TIMEOUT"
         publishResult({ success: false, error: "timeout", message: "Tempo de conexão esgotado." })
         return
     end if
+
+    PRINT "EVENT TYPE=" + type(event)
 
     if type(event) <> "roUrlEvent"
         transfer.AsyncCancel()
@@ -54,6 +64,7 @@ sub run()
 
     code = event.GetResponseCode()
     if code = invalid then code = 0
+    PRINT "HTTP CODE=" + Str(code)
     PRINT "XTREAM_CONNECT_HTTP_DONE code="; code
 
     if code = 0
@@ -67,21 +78,26 @@ sub run()
     end if
 
     response = event.GetString()
+    PRINT event.GetString()
+    PRINT "STEP 8 - JSON"
     data = invalid
     if response <> invalid and response <> ""
         data = ParseJson(response)
     end if
 
     if data = invalid
+        PRINT "STEP 8A - INVALID JSON"
         PRINT "XTREAM_CONNECT_ERROR"
         publishResult({ success: false, error: "invalid_json", message: "O servidor retornou uma resposta inválida." })
         return
     end if
 
     if isAuthenticated(data)
+        PRINT "STEP 9 - LOGIN SUCCESS"
         PRINT "XTREAM_CONNECT_SUCCESS"
         publishResult({ success: true, error: "", message: "Conectado com sucesso.", credentials: { dns: dns, username: username, password: password } })
     else
+        PRINT "STEP 9A - LOGIN FAILED"
         PRINT "XTREAM_CONNECT_ERROR"
         publishResult({ success: false, error: "invalid_credentials", message: "Usuário ou senha inválidos." })
     end if

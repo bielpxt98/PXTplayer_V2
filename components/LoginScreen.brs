@@ -3,6 +3,10 @@ sub init()
     m.username = ""
     m.password = ""
     m.keyboardField = ""
+    m.keyboardValue = ""
+    m.keyboardActive = false
+    m.keyboardIndex = 0
+    m.keyboardColumns = 12
     m.focusIndex = 0
 
     m.background = m.top.findNode("background")
@@ -20,10 +24,21 @@ sub init()
     m.statusLabel = m.top.findNode("statusLabel")
     m.enterButton = m.top.findNode("enterButton")
     m.backButton = m.top.findNode("backButton")
+    m.keyboardGroup = m.top.findNode("keyboardGroup")
+    m.keyboardBackground = m.top.findNode("keyboardBackground")
+    m.keyboardTitle = m.top.findNode("keyboardTitle")
+    m.keyboardInputBox = m.top.findNode("keyboardInputBox")
+    m.keyboardInputText = m.top.findNode("keyboardInputText")
+    m.keyboardKeysGroup = m.top.findNode("keyboardKeysGroup")
 
     m.boxes = [m.dnsBox, m.usernameBox, m.passwordBox]
     m.labels = [m.dnsLabel, m.usernameLabel, m.passwordLabel]
+    m.keyboardKeys = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ".", "/", ":", "-", "_", "APAGAR", "ESPAÇO", "OK", "CANCELAR"]
+    m.keyboardKeyGroups = []
+    m.keyboardKeyBoxes = []
+    m.keyboardKeyLabels = []
 
+    createKeyboardKeys()
     m.top.observeField("width", "layoutLogin")
     m.top.observeField("height", "layoutLogin")
     layoutLogin()
@@ -65,11 +80,19 @@ sub layoutLogin()
     buttonY = (rowSpacing * 3) + 65
     m.enterButton.translation = [0, buttonY]
     m.backButton.translation = [600, buttonY]
+
+    m.keyboardGroup.translation = [(width - 1120) / 2, (height - 560) / 2]
+    m.keyboardTitle.translation = [0, 18]
+    m.keyboardInputBox.translation = [50, 92]
+    m.keyboardInputText.translation = [70, 92]
+    m.keyboardKeysGroup.translation = [50, 190]
+    layoutKeyboardKeys()
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
     if m.top.busy = true then return true
+    if m.keyboardActive = true then return handleKeyboardKey(key)
 
     if key = "up"
         if m.focusIndex > 0 then m.focusIndex = m.focusIndex - 1
@@ -109,45 +132,94 @@ end sub
 
 sub openKeyboard(fieldName as string)
     m.keyboardField = fieldName
-    dialog = CreateObject("roSGNode", "StandardKeyboardDialog")
-    dialog.buttons = ["OK", "Cancelar"]
+    m.keyboardActive = true
+    m.keyboardIndex = 0
 
     if fieldName = "dns"
-        dialog.title = "DNS"
-        dialog.text = m.dns
+        m.keyboardTitle.text = "DNS"
+        m.keyboardValue = m.dns
+        PRINT "CUSTOM_KEYBOARD_OPEN field=dns"
     else if fieldName = "username"
-        dialog.title = "USUÁRIO"
-        dialog.text = m.username
+        m.keyboardTitle.text = "USUÁRIO"
+        m.keyboardValue = m.username
+        PRINT "CUSTOM_KEYBOARD_OPEN field=username"
     else if fieldName = "password"
-        dialog.title = "SENHA"
-        dialog.text = m.password
-        dialog.secureMode = true
+        m.keyboardTitle.text = "SENHA"
+        m.keyboardValue = m.password
+        PRINT "CUSTOM_KEYBOARD_OPEN field=password"
     end if
 
-    dialog.observeField("buttonSelected", "onKeyboardButtonSelected")
-    m.top.getScene().dialog = dialog
+    m.keyboardGroup.visible = true
+    updateKeyboardText()
+    updateKeyboardFocus()
 end sub
 
-sub onKeyboardButtonSelected(event as object)
-    dialog = event.getRoSGNode()
+function handleKeyboardKey(key as string) as boolean
+    if key = "left"
+        if m.keyboardIndex > 0 then m.keyboardIndex = m.keyboardIndex - 1
+        updateKeyboardFocus()
+        return true
+    else if key = "right"
+        if m.keyboardIndex < m.keyboardKeys.count() - 1 then m.keyboardIndex = m.keyboardIndex + 1
+        updateKeyboardFocus()
+        return true
+    else if key = "up"
+        if m.keyboardIndex - m.keyboardColumns >= 0 then m.keyboardIndex = m.keyboardIndex - m.keyboardColumns
+        updateKeyboardFocus()
+        return true
+    else if key = "down"
+        if m.keyboardIndex + m.keyboardColumns < m.keyboardKeys.count() then m.keyboardIndex = m.keyboardIndex + m.keyboardColumns
+        updateKeyboardFocus()
+        return true
+    else if key = "OK"
+        chooseKeyboardKey()
+        return true
+    else if key = "back"
+        closeKeyboard(false)
+        return true
+    end if
 
-    if dialog.buttonSelected = 0
-        value = dialog.text
-        if value = invalid then value = ""
+    return true
+end function
 
+sub chooseKeyboardKey()
+    selectedKey = m.keyboardKeys[m.keyboardIndex]
+
+    if selectedKey = "APAGAR"
+        if Len(m.keyboardValue) > 0 then m.keyboardValue = Left(m.keyboardValue, Len(m.keyboardValue) - 1)
+    else if selectedKey = "ESPAÇO"
+        m.keyboardValue = m.keyboardValue + " "
+    else if selectedKey = "OK"
+        closeKeyboard(true)
+        return
+    else if selectedKey = "CANCELAR"
+        closeKeyboard(false)
+        return
+    else
+        m.keyboardValue = m.keyboardValue + selectedKey
+    end if
+
+    updateKeyboardText()
+end sub
+
+sub closeKeyboard(saveValue as boolean)
+    if saveValue = true
         if m.keyboardField = "dns"
-            m.dns = Left(value, 200)
+            m.dns = Left(m.keyboardValue, 200)
         else if m.keyboardField = "username"
-            m.username = Left(value, 100)
+            m.username = Left(m.keyboardValue, 100)
         else if m.keyboardField = "password"
-            m.password = Left(value, 100)
+            m.password = Left(m.keyboardValue, 100)
         end if
 
+        PRINT "CUSTOM_KEYBOARD_SAVE"
         updateTexts()
     end if
 
-    m.top.getScene().dialog = invalid
+    m.keyboardActive = false
+    m.keyboardGroup.visible = false
     m.top.setFocus(true)
+    updateFocus()
 end sub
 
 sub submitLogin()
@@ -200,6 +272,61 @@ function maskText(value as string) as string
     return masked
 end function
 
+sub createKeyboardKeys()
+    for i = 0 to m.keyboardKeys.count() - 1
+        keyGroup = CreateObject("roSGNode", "Group")
+        keyBox = CreateObject("roSGNode", "Rectangle")
+        keyLabel = CreateObject("roSGNode", "Label")
+
+        keyBox.width = 76
+        keyBox.height = 42
+        keyBox.color = "0x102033FF"
+        keyLabel.width = 76
+        keyLabel.height = 42
+        keyLabel.text = m.keyboardKeys[i]
+        keyLabel.color = "0xFFFFFFFF"
+        keyLabel.horizAlign = "center"
+        keyLabel.vertAlign = "center"
+        keyLabel.font = "font:SmallBoldSystemFont"
+
+        keyGroup.appendChild(keyBox)
+        keyGroup.appendChild(keyLabel)
+        m.keyboardKeysGroup.appendChild(keyGroup)
+        m.keyboardKeyGroups.push(keyGroup)
+        m.keyboardKeyBoxes.push(keyBox)
+        m.keyboardKeyLabels.push(keyLabel)
+    end for
+end sub
+
+sub layoutKeyboardKeys()
+    for i = 0 to m.keyboardKeyGroups.count() - 1
+        row = Int(i / m.keyboardColumns)
+        col = i MOD m.keyboardColumns
+        keyWidth = 76
+        if m.keyboardKeys[i] = "APAGAR" or m.keyboardKeys[i] = "ESPAÇO" or m.keyboardKeys[i] = "CANCELAR" then keyWidth = 130
+        m.keyboardKeyBoxes[i].width = keyWidth
+        m.keyboardKeyLabels[i].width = keyWidth
+        m.keyboardKeyGroups[i].translation = [col * 86, row * 54]
+    end for
+end sub
+
+sub updateKeyboardFocus()
+    for i = 0 to m.keyboardKeyBoxes.count() - 1
+        if i = m.keyboardIndex
+            m.keyboardKeyBoxes[i].color = "0x2A73D9FF"
+        else
+            m.keyboardKeyBoxes[i].color = "0x102033FF"
+        end if
+    end for
+end sub
+
+sub updateKeyboardText()
+    if m.keyboardField = "password"
+        m.keyboardInputText.text = maskText(m.keyboardValue)
+    else
+        m.keyboardInputText.text = m.keyboardValue
+    end if
+end sub
 
 sub onBusyChanged()
     updateFocus()

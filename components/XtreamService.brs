@@ -1,8 +1,10 @@
 sub init()
-    m.top.functionName = "run"
+    PRINT "XTREAM_TASK_INIT"
+    m.top.functionName = "executeXtreamRequest"
 end sub
 
-sub run()
+sub executeXtreamRequest()
+    PRINT "XTREAM_TASK_EXECUTE"
     PRINT "STEP 1 - START"
     result = { success: false, error: "network", message: "Não foi possível conectar ao servidor." }
 

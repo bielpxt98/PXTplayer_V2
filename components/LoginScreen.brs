@@ -3,6 +3,7 @@ sub init()
     m.usernameInput = m.top.FindNode("usernameInput")
     m.passwordInput = m.top.FindNode("passwordInput")
     m.enterBg = m.top.FindNode("enterBg")
+    m.enterLabel = m.top.FindNode("enterLabel")
     m.backBg = m.top.FindNode("backBg")
     m.status = m.top.FindNode("status")
     m.service = m.top.FindNode("service")
@@ -19,6 +20,7 @@ sub init()
 
     m.focusIndex = 0
     m.editingIndex = -1
+    m.loginInProgress = false
     updateFocus()
 end sub
 
@@ -40,10 +42,15 @@ sub updateFocus()
     if m.focusIndex = 0 then m.dnsInput.active = true
     if m.focusIndex = 1 then m.usernameInput.active = true
     if m.focusIndex = 2 then m.passwordInput.active = true
-    if m.focusIndex = 3
+    if m.loginInProgress = true
+        m.enterBg.color = "#4B4B55"
+        m.enterLabel.text = "AGUARDE"
+    else if m.focusIndex = 3
         m.enterBg.color = "#2F75FF"
+        m.enterLabel.text = "ENTRAR"
     else
         m.enterBg.color = "#243B65"
+        m.enterLabel.text = "ENTRAR"
     end if
 
     if m.focusIndex = 4
@@ -99,6 +106,8 @@ sub onKeyboardButton()
 end sub
 
 sub submitLogin()
+    if m.loginInProgress = true then return
+
     dns = Trim(m.dnsInput.text)
     username = Trim(m.usernameInput.text)
     password = m.passwordInput.text
@@ -109,8 +118,11 @@ sub submitLogin()
         return
     end if
 
+    m.loginInProgress = true
+    updateFocus()
     m.status.color = "#FFFFFF"
-    m.status.text = "Conectando..." + Chr(10) + "DNS usado: " + dns
+    m.status.text = "Conectando..." + Chr(10) + "Preparando conexão" + Chr(10) + "DNS usado: " + dns
+    m.service.control = "STOP"
     m.service.dns = dns
     m.service.username = username
     m.service.password = password
@@ -133,6 +145,8 @@ end sub
 
 sub onServiceResult()
     result = m.service.result
+    m.loginInProgress = false
+    updateFocus()
     if result <> invalid and result.success = true
         SaveXtreamCredentials(result.dns, result.username, result.password)
         m.status.color = "#7CFC98"
@@ -142,6 +156,8 @@ sub onServiceResult()
         m.status.color = "#FF6B6B"
         if result <> invalid and result.debug <> invalid and result.debug <> ""
             m.status.text = result.debug
+        else if result <> invalid and result.errorMessage <> invalid and result.errorMessage <> ""
+            m.status.text = "Erro: " + result.errorMessage
         else if result <> invalid and result.message <> invalid and result.message <> ""
             m.status.text = result.message
         else
@@ -196,7 +212,7 @@ function onKeyEvent(key as string, press as boolean) as boolean
             openKeyboard()
             return true
         else if m.focusIndex = 3
-            submitLogin()
+            if m.loginInProgress <> true then submitLogin()
             return true
         else if m.focusIndex = 4
             m.top.closeLogin = true

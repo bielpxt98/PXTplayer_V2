@@ -20,6 +20,13 @@ sub init()
     m.top.observeField("height", "layoutScene")
     layoutScene()
 
+    diagnosticCredentials = loadDiagnosticCredentials()
+    if diagnosticCredentials <> invalid
+        PRINT "DIAGNOSTIC_AUTO_LOGIN_ENABLED"
+        validateCredentials(diagnosticCredentials, "diagnostic")
+        return
+    end if
+
     savedCredentials = loadSavedCredentials()
     if savedCredentials <> invalid
         validateCredentials(savedCredentials, "startup")
@@ -49,6 +56,7 @@ end sub
 
 sub validateCredentials(credentials as object, mode as string)
     m.authMode = mode
+    PRINT "LOGIN_VALIDATE_START mode="; mode; " dns="; credentials.dns; " user="; credentials.username
     m.loginScreen.busy = true
     m.loginScreen.statusMessage = "Conectando..."
     task = CreateObject("roSGNode", "XtreamService")
@@ -68,11 +76,13 @@ sub onAuthResult(event as object)
     if result = invalid then result = { success: false, message: "Não foi possível conectar ao servidor.", error: "network" }
 
     if result.success = true
+        PRINT "LOGIN_AUTH_SUCCESS"
         m.currentCredentials = result.credentials
         saveCredentials(m.currentCredentials)
         m.loginScreen.statusMessage = "Conectado com sucesso."
         showLoadingScreen()
     else
+        PRINT "LOGIN_AUTH_ERROR error="; result.error; " message="; result.message
         if m.authMode = "startup" then clearSavedCredentials()
         m.loginScreen.statusMessage = result.message
         showLoginScreen(result.message)
@@ -190,6 +200,27 @@ sub onRemoveDialogButtonSelected(event as object)
         m.accountScreen.callFunc("setAccountFocus")
     end if
 end sub
+
+function loadDiagnosticCredentials() as object
+    appInfo = CreateObject("roAppInfo")
+    enabled = appInfo.GetValue("diagnostic_auto_login")
+    if enabled = invalid or LCase(Trim(enabled)) <> "true" then return invalid
+
+    dns = Trim(appInfo.GetValue("diagnostic_dns"))
+    username = Trim(appInfo.GetValue("diagnostic_username"))
+    password = appInfo.GetValue("diagnostic_password")
+
+    if dns = invalid then dns = ""
+    if username = invalid then username = ""
+    if password = invalid then password = ""
+
+    if dns = "" or username = "" or password = ""
+        PRINT "DIAGNOSTIC_AUTO_LOGIN_MISSING_FIELDS"
+        return invalid
+    end if
+
+    return { dns: dns, username: username, password: password }
+end function
 
 function loadSavedCredentials() as object
     section = CreateObject("roRegistrySection", "pxtplayer_auth")

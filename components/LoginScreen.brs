@@ -21,6 +21,7 @@ sub init()
     m.focusIndex = 0
     m.editingIndex = -1
     m.loginInProgress = false
+    m.editOriginalValue = ""
     updateFocus()
 end sub
 
@@ -69,31 +70,41 @@ sub moveFocus(delta as integer)
     updateFocus()
 end sub
 
+function getFocusedInput() as object
+    if m.focusIndex = 0 then return m.dnsInput
+    if m.focusIndex = 1 then return m.usernameInput
+    if m.focusIndex = 2 then return m.passwordInput
+    return invalid
+end function
+
+function getEditingInput() as object
+    if m.editingIndex = 0 then return m.dnsInput
+    if m.editingIndex = 1 then return m.usernameInput
+    if m.editingIndex = 2 then return m.passwordInput
+    return invalid
+end function
+
 sub openKeyboard()
-    m.editingIndex = m.focusIndex
-    if m.focusIndex = 0
-        m.dnsInput.SetFocus(true)
-    else if m.focusIndex = 1
-        m.usernameInput.SetFocus(true)
-    else if m.focusIndex = 2
-        m.passwordInput.SetFocus(true)
-    else
+    input = getFocusedInput()
+    if input = invalid
         m.editingIndex = -1
         return
     end if
+
+    m.editingIndex = m.focusIndex
+    m.editOriginalValue = input.text
+    input.active = true
+    input.SetFocus(true)
 end sub
 
 sub closeKeyboard(applyValue as boolean)
-    if m.top.GetScene().dialog <> invalid
-        if applyValue
-            if m.editingIndex = 0 then m.dnsInput.text = m.keyboard.text
-            if m.editingIndex = 1 then m.usernameInput.text = m.keyboard.text
-            if m.editingIndex = 2 then m.passwordInput.text = m.keyboard.text
-        end if
-        m.top.GetScene().dialog = invalid
+    input = getEditingInput()
+    if input <> invalid and applyValue <> true
+        input.text = m.editOriginalValue
     end if
     if m.editingIndex >= 0 then m.focusIndex = m.editingIndex
     m.editingIndex = -1
+    m.editOriginalValue = ""
     updateFocus()
 end sub
 
@@ -166,22 +177,121 @@ sub onServiceResult()
     end if
 end sub
 
+
+function textCharacterFromKey(key as string) as string
+    if key = invalid then return ""
+
+    rawKey = key
+    lowerKey = LCase(rawKey)
+
+    if Len(rawKey) = 1
+        code = Asc(rawKey)
+        if (code >= 32 and code <= 126) then return rawKey
+    end if
+
+    if Left(lowerKey, 4) = "lit_" and Len(rawKey) = 5
+        return Mid(rawKey, 5, 1)
+    end if
+
+    if Left(lowerKey, 4) = "key" and Len(rawKey) = 4
+        digit = Mid(rawKey, 4, 1)
+        if digit >= "0" and digit <= "9" then return digit
+    end if
+
+    if Left(lowerKey, 6) = "numpad" and Len(rawKey) = 7
+        digit = Mid(rawKey, 7, 1)
+        if digit >= "0" and digit <= "9" then return digit
+    end if
+
+    if lowerKey = "space" then return " "
+    if lowerKey = "period" or lowerKey = "numpaddecimal" or lowerKey = "decimal" or lowerKey = "kpdecimal" then return "."
+    if lowerKey = "slash" or lowerKey = "forwardslash" then return "/"
+    if lowerKey = "colon" then return ":"
+    if lowerKey = "semicolon" then return ":"
+    if lowerKey = "minus" or lowerKey = "hyphen" or lowerKey = "dash" then return "-"
+
+    return ""
+end function
+
+function handleTextEditingKey(key as string, normalizedKey as string) as boolean
+    input = getEditingInput()
+    if input = invalid then return false
+
+    if normalizedKey = "ok"
+        closeKeyboard(true)
+        return true
+    else if normalizedKey = "back" and LCase(key) <> "backspace"
+        closeKeyboard(false)
+        return true
+    else if LCase(key) = "escape"
+        closeKeyboard(false)
+        return true
+    else if LCase(key) = "backspace"
+        if Len(input.text) > 0 then input.text = Left(input.text, Len(input.text) - 1)
+        return true
+    else if normalizedKey = "delete"
+        if Len(input.text) > 0 then input.text = Left(input.text, Len(input.text) - 1)
+        return true
+    end if
+
+    char = textCharacterFromKey(key)
+    if char <> ""
+        input.text = input.text + char
+        return true
+    end if
+
+    return false
+end function
+
+function isPointInsideNode(node as object, x as float, y as float) as boolean
+    bounds = node.boundingRect()
+    return x >= bounds.x and x <= (bounds.x + bounds.width) and y >= bounds.y and y <= (bounds.y + bounds.height)
+end function
+
+function onMouseEvent(event as object) as boolean
+    if event = invalid then return false
+    if event.isButtonPressed() <> true then return false
+
+    x = event.getX()
+    y = event.getY()
+
+    if isPointInsideNode(m.dnsInput, x, y)
+        m.focusIndex = 0
+        updateFocus()
+        openKeyboard()
+        return true
+    else if isPointInsideNode(m.usernameInput, x, y)
+        m.focusIndex = 1
+        updateFocus()
+        openKeyboard()
+        return true
+    else if isPointInsideNode(m.passwordInput, x, y)
+        m.focusIndex = 2
+        updateFocus()
+        openKeyboard()
+        return true
+    else if isPointInsideNode(m.enterBg, x, y)
+        m.focusIndex = 3
+        updateFocus()
+        if m.loginInProgress <> true then submitLogin()
+        return true
+    else if isPointInsideNode(m.backBg, x, y)
+        m.focusIndex = 4
+        updateFocus()
+        m.top.closeLogin = true
+        return true
+    end if
+
+    return false
+end function
+
 function onKeyEvent(key as string, press as boolean) as boolean
     if not press then return false
 
     normalizedKey = NormalizeRemoteKey(key)
 
     if m.editingIndex >= 0
-        if normalizedKey = "ok"
-            closeKeyboard(true)
-            return true
-        else if normalizedKey = "back" and LCase(key) <> "backspace"
-            closeKeyboard(false)
-            return true
-        end if
-
-        ' Let TextEditBox handle normal typing plus Backspace/Delete while editing.
-        return false
+        return handleTextEditingKey(key, normalizedKey)
     end if
 
     if m.top.GetScene().dialog <> invalid

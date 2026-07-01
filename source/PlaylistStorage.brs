@@ -2,9 +2,9 @@
 ' Credenciais usadas somente para facilitar testes no Roku/simulador sem digitação repetida.
 function GetTemporaryTestXtreamCredentials() as object
     return {
-        TEST_DNS: "http://ttvp2.live"
-        TEST_USERNAME: "20082016"
-        TEST_PASSWORD: "10012024"
+        TEST_DNS: "http://alphapublic.top"
+        TEST_USERNAME: "175214928"
+        TEST_PASSWORD: "371951665"
     }
 end function
 

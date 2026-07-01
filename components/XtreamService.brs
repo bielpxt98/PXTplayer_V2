@@ -13,7 +13,7 @@ sub run()
     end if
 
     print "conectando Xtream"
-    m.top.progress = "Conectando conta..."
+    m.top.progress = "Conectando..."
     account = fetchXtreamJson(dns, username, password, "")
     if account.success <> true
         m.top.result = account
@@ -36,40 +36,12 @@ sub run()
         return
     end if
 
-    print "carregando categorias TV"
-    m.top.progress = "Carregando categorias de TV..."
-    liveCategories = fetchXtreamJson(dns, username, password, "get_live_categories")
-    if liveCategories.success <> true
-        m.top.result = buildError("Não foi possível carregar categorias de TV.")
-        return
-    end if
-
-    print "carregando categorias Filmes"
-    m.top.progress = "Carregando categorias de filmes..."
-    vodCategories = fetchXtreamJson(dns, username, password, "get_vod_categories")
-    if vodCategories.success <> true
-        m.top.result = buildError("Não foi possível carregar categorias de filmes.")
-        return
-    end if
-
-    print "carregando categorias Séries"
-    m.top.progress = "Carregando categorias de séries..."
-    seriesCategories = fetchXtreamJson(dns, username, password, "get_series_categories")
-    if seriesCategories.success <> true
-        m.top.result = buildError("Não foi possível carregar categorias de séries.")
-        return
-    end if
-
-    print "lista carregada"
-    m.top.progress = "Lista carregada com sucesso"
+    m.top.progress = "Login realizado com sucesso"
     m.top.result = {
         success: true
         dns: dns
         username: username
         password: password
-        liveCategoryCount: countItems(liveCategories.data)
-        vodCategoryCount: countItems(vodCategories.data)
-        seriesCategoryCount: countItems(seriesCategories.data)
     }
 end sub
 

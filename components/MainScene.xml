@@ -13,5 +13,6 @@
       <Label id="loadingHint" text="Aguarde. A interface será liberada após validar as categorias básicas." translation="[120,370]" width="1300" color="#B8B8C8" font="font:MediumSystemFont" />
     </Group>
     <XtreamService id="startupService" />
+    <Timer id="startupTimeout" repeat="false" duration="35" />
   </children>
 </component>

@@ -4,23 +4,29 @@ sub init()
     m.loading = m.top.FindNode("loading")
     m.loadingStatus = m.top.FindNode("loadingStatus")
     m.startupService = m.top.FindNode("startupService")
+    m.startupTimeout = m.top.FindNode("startupTimeout")
+    m.startupFinished = false
 
     m.home.ObserveField("openLogin", "showLogin")
     m.login.ObserveField("closeLogin", "showHome")
     m.login.ObserveField("loginSuccess", "onLoginSuccess")
     m.startupService.ObserveField("progress", "onStartupProgress")
     m.startupService.ObserveField("result", "onStartupResult")
+    m.startupTimeout.ObserveField("fire", "onStartupTimeout")
 
     startInitialLoad()
 end sub
 
 sub startInitialLoad()
+    print "iniciando login automático"
+    m.startupFinished = false
     credentials = EnsureXtreamCredentialsForTest()
     showLoading("Carregando lista...")
     m.startupService.dns = credentials.dns
     m.startupService.username = credentials.username
     m.startupService.password = credentials.password
     m.startupService.control = "RUN"
+    m.startupTimeout.control = "start"
 end sub
 
 sub showLoading(message as string)
@@ -62,6 +68,9 @@ sub onStartupProgress()
 end sub
 
 sub onStartupResult()
+    if m.startupFinished = true then return
+    m.startupFinished = true
+    m.startupTimeout.control = "stop"
     result = m.startupService.result
     if result <> invalid and result.success = true
         SaveXtreamCredentials(result.dns, result.username, result.password)
@@ -76,8 +85,22 @@ sub onStartupResult()
         end if
         m.home.navigationEnabled = true
         showLogin()
+        print "erro ocorrido: " + m.loadingStatus.text
         m.login.callFunc("setStatus", m.loadingStatus.text)
     end if
+end sub
+
+sub onStartupTimeout()
+    if m.startupFinished = true then return
+    m.startupFinished = true
+    m.startupService.control = "STOP"
+    message = "Tempo esgotado ao carregar a lista. Confira a conexão ou revise sua conta."
+    print "erro ocorrido: " + message
+    m.loadingStatus.color = "#FF6B6B"
+    m.loadingStatus.text = message
+    m.home.navigationEnabled = true
+    showLogin()
+    m.login.callFunc("setStatus", message)
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean

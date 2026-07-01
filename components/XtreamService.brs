@@ -8,10 +8,11 @@ sub run()
     password = m.top.password
 
     if dns = "" or username = "" or password = ""
-        m.top.result = { success: false, message: "Preencha DNS, usuário e senha." }
+        m.top.result = buildError("Preencha DNS, usuário e senha.")
         return
     end if
 
+    print "conectando Xtream"
     m.top.progress = "Conectando conta..."
     account = fetchXtreamJson(dns, username, password, "")
     if account.success <> true
@@ -31,31 +32,35 @@ sub run()
     end if
 
     if not authenticated
-        m.top.result = { success: false, message: "Login Xtream inválido ou usuário inativo." }
+        m.top.result = buildError("Login Xtream inválido ou usuário inativo.")
         return
     end if
 
+    print "carregando categorias TV"
     m.top.progress = "Carregando categorias de TV..."
     liveCategories = fetchXtreamJson(dns, username, password, "get_live_categories")
     if liveCategories.success <> true
-        m.top.result = { success: false, message: "Não foi possível carregar categorias de TV." }
+        m.top.result = buildError("Não foi possível carregar categorias de TV.")
         return
     end if
 
+    print "carregando categorias Filmes"
     m.top.progress = "Carregando categorias de filmes..."
     vodCategories = fetchXtreamJson(dns, username, password, "get_vod_categories")
     if vodCategories.success <> true
-        m.top.result = { success: false, message: "Não foi possível carregar categorias de filmes." }
+        m.top.result = buildError("Não foi possível carregar categorias de filmes.")
         return
     end if
 
+    print "carregando categorias Séries"
     m.top.progress = "Carregando categorias de séries..."
     seriesCategories = fetchXtreamJson(dns, username, password, "get_series_categories")
     if seriesCategories.success <> true
-        m.top.result = { success: false, message: "Não foi possível carregar categorias de séries." }
+        m.top.result = buildError("Não foi possível carregar categorias de séries.")
         return
     end if
 
+    print "lista carregada"
     m.top.progress = "Lista carregada com sucesso"
     m.top.result = {
         success: true
@@ -79,20 +84,26 @@ function fetchXtreamJson(dns as string, username as string, password as string, 
     transfer.SetUrl(url)
     transfer.SetRequest("GET")
     transfer.SetHeaders({ "Accept": "application/json" })
+    transfer.SetMinimumTransferRate(1, 30)
 
     body = transfer.GetToString()
     code = transfer.GetResponseCode()
 
     if code < 200 or code >= 300 or body = invalid or body = ""
-        return { success: false, message: "Servidor não respondeu. Confira o DNS informado." }
+        return buildError("Servidor não respondeu. Confira o DNS informado.")
     end if
 
     data = ParseJson(body)
     if data = invalid
-        return { success: false, message: "Resposta inválida do servidor Xtream." }
+        return buildError("Resposta inválida do servidor Xtream.")
     end if
 
     return { success: true, data: data }
+end function
+
+function buildError(message as string) as object
+    print "erro ocorrido: " + message
+    return { success: false, message: message }
 end function
 
 function countItems(value as object) as integer

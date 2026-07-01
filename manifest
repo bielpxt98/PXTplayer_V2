@@ -6,3 +6,11 @@ ui_resolutions=fhd
 main_scene=MainScene
 splash_color=#000000
 splash_min_time=1000
+
+# Diagnóstico temporário de login
+# Para testar no simulador sem teclado, troque diagnostic_auto_login para true
+# e preencha os 3 campos abaixo no ZIP local. Não envie credenciais reais para o GitHub.
+diagnostic_auto_login=false
+diagnostic_dns=
+diagnostic_username=
+diagnostic_password=

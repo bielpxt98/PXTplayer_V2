@@ -6,6 +6,7 @@
     <field id="username" type="string" />
     <field id="password" type="string" />
     <field id="progress" type="string" alwaysNotify="true" />
+    <field id="debug" type="string" alwaysNotify="true" />
     <field id="result" type="assocarray" alwaysNotify="true" />
   </interface>
 </component>

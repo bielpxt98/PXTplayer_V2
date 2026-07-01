@@ -9,7 +9,7 @@
     <Group id="loading" visible="false">
       <Label text="PXT Player" translation="[120,90]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
       <Label id="loadingTitle" text="Conectando..." translation="[120,230]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
-      <Label id="loadingStatus" text="Conectando..." translation="[120,310]" width="1200" color="#FFFFFF" font="font:MediumSystemFont" />
+      <Label id="loadingStatus" text="Conectando..." translation="[120,310]" width="1200" height="220" wrap="true" color="#FFFFFF" font="font:MediumSystemFont" />
       <Label id="loadingHint" text="Aguarde enquanto validamos o login." translation="[120,370]" width="1300" color="#B8B8C8" font="font:MediumSystemFont" />
     </Group>
     <XtreamService id="startupService" />

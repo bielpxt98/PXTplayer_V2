@@ -12,6 +12,7 @@ sub init()
     m.login.ObserveField("closeLogin", "showHome")
     m.login.ObserveField("loginSuccess", "onLoginSuccess")
     m.startupService.ObserveField("progress", "onStartupProgress")
+    m.startupService.ObserveField("debug", "onStartupDebug")
     m.startupService.ObserveField("result", "onStartupResult")
     m.startupTimeout.ObserveField("fire", "onStartupTimeout")
     m.startupSuccessDelay.ObserveField("fire", "onStartupSuccessDelay")
@@ -69,6 +70,13 @@ sub onStartupProgress()
     end if
 end sub
 
+sub onStartupDebug()
+    if m.startupService.debug <> invalid and m.startupService.debug <> ""
+        m.loadingStatus.color = "#FFFFFF"
+        m.loadingStatus.text = m.startupService.debug
+    end if
+end sub
+
 sub onStartupResult()
     if m.startupFinished = true then return
     m.startupFinished = true
@@ -82,7 +90,9 @@ sub onStartupResult()
         m.startupSuccessDelay.control = "start"
     else
         m.loadingStatus.color = "#FF6B6B"
-        if result <> invalid and result.message <> invalid and result.message <> ""
+        if result <> invalid and result.debug <> invalid and result.debug <> ""
+            m.loadingStatus.text = result.debug
+        else if result <> invalid and result.message <> invalid and result.message <> ""
             m.loadingStatus.text = result.message
         else
             m.loadingStatus.text = "Não foi possível conectar. Confira DNS, usuário e senha."

@@ -26,7 +26,8 @@
     <Rectangle id="backBg" translation="[420,630]" width="260" height="72" color="#303038" />
     <Label id="backLabel" text="VOLTAR" translation="[485,651]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
 
-    <Label id="status" translation="[120,735]" width="1200" color="#FFFFFF" font="font:MediumSystemFont" />
+    <Label id="status" translation="[120,735]" width="1200" height="170" wrap="true" color="#FFFFFF" font="font:MediumSystemFont" />
     <XtreamService id="service" />
+    <KeyboardDialog id="keyboard" />
   </children>
 </component>

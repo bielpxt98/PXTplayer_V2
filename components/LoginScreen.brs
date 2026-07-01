@@ -6,7 +6,11 @@ sub init()
     m.backBg = m.top.FindNode("backBg")
     m.status = m.top.FindNode("status")
     m.service = m.top.FindNode("service")
+    m.keyboard = m.top.FindNode("keyboard")
     m.service.ObserveField("result", "onServiceResult")
+    m.service.ObserveField("progress", "onServiceProgress")
+    m.service.ObserveField("debug", "onServiceDebug")
+    m.keyboard.ObserveField("buttonSelected", "onKeyboardButton")
 
     saved = LoadXtreamCredentials()
     m.dnsInput.text = saved.dns
@@ -14,6 +18,7 @@ sub init()
     m.passwordInput.text = saved.password
 
     m.focusIndex = 0
+    m.editingIndex = -1
     updateFocus()
 end sub
 
@@ -60,6 +65,44 @@ sub moveFocus(delta as integer)
     updateFocus()
 end sub
 
+sub openKeyboard()
+    m.editingIndex = m.focusIndex
+    if m.focusIndex = 0
+        m.keyboard.title = "DNS"
+        m.keyboard.text = m.dnsInput.text
+    else if m.focusIndex = 1
+        m.keyboard.title = "Usuário"
+        m.keyboard.text = m.usernameInput.text
+    else if m.focusIndex = 2
+        m.keyboard.title = "Senha"
+        m.keyboard.text = m.passwordInput.text
+    else
+        return
+    end if
+    m.keyboard.buttons = ["OK", "Cancelar"]
+    m.top.GetScene().dialog = m.keyboard
+end sub
+
+sub closeKeyboard(applyValue as boolean)
+    if applyValue
+        if m.editingIndex = 0 then m.dnsInput.text = m.keyboard.text
+        if m.editingIndex = 1 then m.usernameInput.text = m.keyboard.text
+        if m.editingIndex = 2 then m.passwordInput.text = m.keyboard.text
+    end if
+    m.top.GetScene().dialog = invalid
+    if m.editingIndex >= 0 then m.focusIndex = m.editingIndex
+    m.editingIndex = -1
+    updateFocus()
+end sub
+
+sub onKeyboardButton()
+    if m.keyboard.buttonSelected = 0
+        closeKeyboard(true)
+    else if m.keyboard.buttonSelected = 1
+        closeKeyboard(false)
+    end if
+end sub
+
 sub submitLogin()
     dns = Trim(m.dnsInput.text)
     username = Trim(m.usernameInput.text)
@@ -72,11 +115,25 @@ sub submitLogin()
     end if
 
     m.status.color = "#FFFFFF"
-    m.status.text = "Conectando..."
+    m.status.text = "Conectando..." + Chr(10) + "DNS usado: " + dns
     m.service.dns = dns
     m.service.username = username
     m.service.password = password
     m.service.control = "RUN"
+end sub
+
+sub onServiceProgress()
+    if m.service.progress <> invalid and m.service.progress <> ""
+        m.status.color = "#FFFFFF"
+        m.status.text = m.service.progress
+    end if
+end sub
+
+sub onServiceDebug()
+    if m.service.debug <> invalid and m.service.debug <> ""
+        m.status.color = "#FFFFFF"
+        m.status.text = m.service.debug
+    end if
 end sub
 
 sub onServiceResult()
@@ -88,10 +145,12 @@ sub onServiceResult()
         m.top.loginSuccess = true
     else
         m.status.color = "#FF6B6B"
-        if result <> invalid and result.message <> invalid and result.message <> ""
+        if result <> invalid and result.debug <> invalid and result.debug <> ""
+            m.status.text = result.debug
+        else if result <> invalid and result.message <> invalid and result.message <> ""
             m.status.text = result.message
         else
-            m.status.text = "Não foi possível conectar. Confira DNS, usuário e senha."
+            m.status.text = "Falha desconhecida no login Xtream."
         end if
     end if
 end sub
@@ -102,6 +161,14 @@ function onKeyEvent(key as string, press as boolean) as boolean
     normalizedKey = LCase(key)
     if normalizedKey = "enter" then normalizedKey = "ok"
     if normalizedKey = "escape" or normalizedKey = "backspace" then normalizedKey = "back"
+
+    if m.top.GetScene().dialog <> invalid
+        if normalizedKey = "back"
+            closeKeyboard(false)
+            return true
+        end if
+        return false
+    end if
 
     if normalizedKey = "back"
         m.top.closeLogin = true
@@ -119,7 +186,10 @@ function onKeyEvent(key as string, press as boolean) as boolean
         moveFocus(1)
         return true
     else if normalizedKey = "ok"
-        if m.focusIndex = 3
+        if m.focusIndex >= 0 and m.focusIndex <= 2
+            openKeyboard()
+            return true
+        else if m.focusIndex = 3
             submitLogin()
             return true
         else if m.focusIndex = 4

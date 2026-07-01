@@ -6,6 +6,7 @@
     <field id="closeLogin" type="boolean" alwaysNotify="true" />
     <field id="loginSuccess" type="boolean" alwaysNotify="true" />
     <function name="resetStatus" />
+    <function name="setStatus" />
   </interface>
   <children>
     <Label text="Login Xtream" translation="[120,70]" color="#FFFFFF" font="font:LargeBoldSystemFont" />

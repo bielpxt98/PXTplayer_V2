@@ -1,11 +1,37 @@
 sub init()
-    m.buttonBg = m.top.FindNode("playlistButtonBg")
+    m.buttons = [
+        m.top.FindNode("button0Bg")
+        m.top.FindNode("button1Bg")
+        m.top.FindNode("button2Bg")
+        m.top.FindNode("button3Bg")
+        m.top.FindNode("button4Bg")
+    ]
     m.status = m.top.FindNode("status")
+    m.focusIndex = 0
+    m.top.ObserveField("navigationEnabled", "updateFocus")
     m.top.SetFocus(true)
+    updateFocus()
 end sub
 
 sub setStatus(message as string)
     m.status.text = message
+end sub
+
+sub updateFocus()
+    for i = 0 to m.buttons.Count() - 1
+        if m.top.navigationEnabled = true and i = m.focusIndex
+            m.buttons[i].color = "#2F75FF"
+        else
+            m.buttons[i].color = "#243B65"
+        end if
+    end for
+end sub
+
+sub moveFocus(delta as integer)
+    m.focusIndex = m.focusIndex + delta
+    if m.focusIndex < 0 then m.focusIndex = m.buttons.Count() - 1
+    if m.focusIndex >= m.buttons.Count() then m.focusIndex = 0
+    updateFocus()
 end sub
 
 function onKeyEvent(key as string, press as boolean) as boolean
@@ -14,8 +40,23 @@ function onKeyEvent(key as string, press as boolean) as boolean
     normalizedKey = LCase(key)
     if normalizedKey = "enter" then normalizedKey = "ok"
 
-    if normalizedKey = "ok"
-        m.top.openLogin = true
+    if m.top.navigationEnabled <> true
+        return true
+    end if
+
+    if normalizedKey = "down"
+        moveFocus(1)
+        return true
+    else if normalizedKey = "up"
+        moveFocus(-1)
+        return true
+    else if normalizedKey = "ok"
+        if m.focusIndex = 4
+            m.top.openLogin = true
+        else
+            m.status.color = "#FFB347"
+            m.status.text = "Em breve"
+        end if
         return true
     end if
 

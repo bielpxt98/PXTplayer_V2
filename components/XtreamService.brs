@@ -12,27 +12,14 @@ sub run()
         return
     end if
 
-    transfer = CreateObject("roUrlTransfer")
-    transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
-    transfer.InitClientCertificates()
-    transfer.SetUrl(dns + "/player_api.php?username=" + transfer.Escape(username) + "&password=" + transfer.Escape(password))
-    transfer.SetRequest("GET")
-    transfer.SetHeaders({ "Accept": "application/json" })
-
-    body = transfer.GetToString()
-    code = transfer.GetResponseCode()
-
-    if code < 200 or code >= 300 or body = invalid or body = ""
-        m.top.result = { success: false, message: "Servidor não respondeu. Confira o DNS informado." }
+    m.top.progress = "Conectando conta..."
+    account = fetchXtreamJson(dns, username, password, "")
+    if account.success <> true
+        m.top.result = account
         return
     end if
 
-    data = ParseJson(body)
-    if data = invalid
-        m.top.result = { success: false, message: "Resposta inválida do servidor Xtream." }
-        return
-    end if
-
+    data = account.data
     authenticated = false
     if data.user_info <> invalid
         if data.user_info.auth <> invalid
@@ -43,21 +30,80 @@ sub run()
         end if
     end if
 
-    if authenticated
-        m.top.result = {
-            success: true
-            dns: dns
-            username: username
-            password: password
-        }
-    else
+    if not authenticated
         m.top.result = { success: false, message: "Login Xtream inválido ou usuário inativo." }
+        return
     end if
+
+    m.top.progress = "Carregando categorias de TV..."
+    liveCategories = fetchXtreamJson(dns, username, password, "get_live_categories")
+    if liveCategories.success <> true
+        m.top.result = { success: false, message: "Não foi possível carregar categorias de TV." }
+        return
+    end if
+
+    m.top.progress = "Carregando categorias de filmes..."
+    vodCategories = fetchXtreamJson(dns, username, password, "get_vod_categories")
+    if vodCategories.success <> true
+        m.top.result = { success: false, message: "Não foi possível carregar categorias de filmes." }
+        return
+    end if
+
+    m.top.progress = "Carregando categorias de séries..."
+    seriesCategories = fetchXtreamJson(dns, username, password, "get_series_categories")
+    if seriesCategories.success <> true
+        m.top.result = { success: false, message: "Não foi possível carregar categorias de séries." }
+        return
+    end if
+
+    m.top.progress = "Lista carregada com sucesso"
+    m.top.result = {
+        success: true
+        dns: dns
+        username: username
+        password: password
+        liveCategoryCount: countItems(liveCategories.data)
+        vodCategoryCount: countItems(vodCategories.data)
+        seriesCategoryCount: countItems(seriesCategories.data)
+    }
 end sub
+
+function fetchXtreamJson(dns as string, username as string, password as string, action as string) as object
+    transfer = CreateObject("roUrlTransfer")
+    transfer.SetCertificatesFile("common:/certs/ca-bundle.crt")
+    transfer.InitClientCertificates()
+
+    url = dns + "/player_api.php?username=" + transfer.Escape(username) + "&password=" + transfer.Escape(password)
+    if action <> "" then url = url + "&action=" + action
+
+    transfer.SetUrl(url)
+    transfer.SetRequest("GET")
+    transfer.SetHeaders({ "Accept": "application/json" })
+
+    body = transfer.GetToString()
+    code = transfer.GetResponseCode()
+
+    if code < 200 or code >= 300 or body = invalid or body = ""
+        return { success: false, message: "Servidor não respondeu. Confira o DNS informado." }
+    end if
+
+    data = ParseJson(body)
+    if data = invalid
+        return { success: false, message: "Resposta inválida do servidor Xtream." }
+    end if
+
+    return { success: true, data: data }
+end function
+
+function countItems(value as object) as integer
+    if value = invalid then return 0
+    if GetInterface(value, "ifArray") <> invalid then return value.Count()
+    return 0
+end function
 
 function normalizeDns(value as string) as string
     dns = Trim(value)
-    while Right(dns, 1) = "/"
+    while Len(dns) > 0 and Right(dns, 1) = "/"
         dns = Left(dns, Len(dns) - 1)
     end while
     return dns

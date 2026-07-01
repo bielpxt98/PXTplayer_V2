@@ -23,6 +23,11 @@ sub resetStatus()
     updateFocus()
 end sub
 
+sub setStatus(message as string)
+    m.status.color = "#FF6B6B"
+    m.status.text = message
+end sub
+
 sub updateFocus()
     m.dnsInput.active = false
     m.usernameInput.active = false

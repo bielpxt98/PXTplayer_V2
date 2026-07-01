@@ -3,12 +3,27 @@
   <script type="text/brightscript" uri="pkg:/components/HomeScreen.brs" />
   <interface>
     <field id="openLogin" type="boolean" alwaysNotify="true" />
+    <field id="navigationEnabled" type="boolean" value="false" />
     <function name="setStatus" />
   </interface>
   <children>
     <Label id="title" text="PXT Player" translation="[120,90]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
-    <Rectangle id="playlistButtonBg" translation="[120,210]" width="560" height="86" color="#243B65" />
-    <Label id="playlistButton" text="LISTA DE REPRODUÇÃO" translation="[150,236]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
-    <Label id="status" translation="[120,330]" color="#7CFC98" font="font:MediumSystemFont" />
+
+    <Rectangle id="button0Bg" translation="[120,190]" width="420" height="72" color="#243B65" />
+    <Label id="button0Label" text="TV AO VIVO" translation="[150,211]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+
+    <Rectangle id="button1Bg" translation="[120,282]" width="420" height="72" color="#243B65" />
+    <Label id="button1Label" text="FILMES" translation="[150,303]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+
+    <Rectangle id="button2Bg" translation="[120,374]" width="420" height="72" color="#243B65" />
+    <Label id="button2Label" text="SÉRIES" translation="[150,395]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+
+    <Rectangle id="button3Bg" translation="[120,466]" width="420" height="72" color="#243B65" />
+    <Label id="button3Label" text="FAVORITOS" translation="[150,487]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+
+    <Rectangle id="button4Bg" translation="[120,558]" width="420" height="72" color="#243B65" />
+    <Label id="button4Label" text="CONTA" translation="[150,579]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+
+    <Label id="status" translation="[120,670]" width="1200" color="#7CFC98" font="font:MediumSystemFont" />
   </children>
 </component>

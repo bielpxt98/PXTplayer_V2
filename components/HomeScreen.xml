@@ -4,6 +4,7 @@
   <script type="text/brightscript" uri="pkg:/components/HomeScreen.brs" />
   <interface>
     <field id="openLogin" type="boolean" alwaysNotify="true" />
+    <field id="openMovies" type="boolean" alwaysNotify="true" />
     <field id="navigationEnabled" type="boolean" value="false" />
     <function name="setStatus" />
   </interface>

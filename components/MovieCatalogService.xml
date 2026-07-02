@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MovieCatalogService" extends="Task">
+  <script type="text/brightscript" uri="pkg:/components/MovieCatalogService.brs" />
+  <interface>
+    <field id="dns" type="string" />
+    <field id="username" type="string" />
+    <field id="password" type="string" />
+    <field id="result" type="assocarray" alwaysNotify="true" />
+  </interface>
+</component>

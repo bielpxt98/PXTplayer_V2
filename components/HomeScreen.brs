@@ -50,7 +50,9 @@ function onKeyEvent(key as string, press as boolean) as boolean
         moveFocus(-1)
         return true
     else if normalizedKey = "ok"
-        if m.focusIndex = 4
+        if m.focusIndex = 1
+            m.top.openMovies = true
+        else if m.focusIndex = 4
             m.top.openLogin = true
         else
             m.status.color = "#FFB347"

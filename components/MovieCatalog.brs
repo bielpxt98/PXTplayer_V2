@@ -13,17 +13,31 @@ sub init()
     m.renderedCount = 0
     m.focusIndex = 0
     m.searchQuery = ""
-    m.batchSize = 80
-    m.searchPageSize = 100
+    m.batchSize = 40
+    m.searchPageSize = 80
     m.columns = 6
-    m.cardW = 190
-    m.cardH = 300
+    m.cardW = 176
+    m.cardH = 282
+    m.posterW = 140
+    m.posterH = 210
+    m.hasRenderedOnce = false
+    m.isLoading = false
 end sub
 
 sub open()
     m.top.visible = true
     m.top.SetFocus(true)
-    if m.allMovies.Count() = 0 then loadMovies() else resetList()
+    if m.allMovies.Count() = 0
+        loadMovies()
+    else
+        m.isLoading = false
+        if m.hasRenderedOnce <> true or m.grid.GetChildCount() = 0
+            resetList()
+        else
+            updateFocus()
+            updateStatus()
+        end if
+    end if
 end sub
 
 sub loadMovies()
@@ -32,6 +46,7 @@ sub loadMovies()
         if HasLoadedContentCache() <> true then m.status.text = "Faça login para carregar filmes."
         return
     end if
+    m.isLoading = true
     m.status.text = "Carregando filmes..."
     m.service.dns = credentials.dns
     m.service.username = credentials.username
@@ -55,6 +70,7 @@ sub onMoviesLoaded()
     ClearAccountErrors()
     MarkContentLoaded()
     m.top.contentLoaded = true
+    m.isLoading = false
     m.allMovies = result.movies
     resetList()
 end sub
@@ -66,6 +82,7 @@ sub clearGrid()
 end sub
 
 sub resetList()
+    m.status.text = "Carregando lista..."
     m.filteredMovies = []
     m.filterScanIndex = 0
     m.filteredComplete = false
@@ -74,6 +91,7 @@ sub resetList()
     m.renderedCount = 0
     m.focusIndex = 0
     appendMovieBatch()
+    m.hasRenderedOnce = true
     updateFocus()
     updateStatus()
 end sub
@@ -123,8 +141,8 @@ function createCard(movie as object, index as integer) as object
 
     bg = CreateObject("roSGNode", "Rectangle")
     bg.id = "bg"
-    bg.width = 160
-    bg.height = 238
+    bg.width = m.posterW
+    bg.height = m.posterH
     bg.color = "#1F2E4A"
     card.AppendChild(bg)
 
@@ -132,15 +150,17 @@ function createCard(movie as object, index as integer) as object
     if poster <> ""
         img = CreateObject("roSGNode", "Poster")
         img.uri = poster
-        img.width = 160
-        img.height = 238
-        img.loadDisplayMode = "scaleToFill"
+        img.width = m.posterW
+        img.height = m.posterH
+        img.loadWidth = m.posterW
+        img.loadHeight = m.posterH
+        img.loadDisplayMode = "scaleToFit"
         card.AppendChild(img)
     else
         ph = CreateObject("roSGNode", "Label")
         ph.text = "Sem poster"
-        ph.translation = [24, 102]
-        ph.width = 120
+        ph.translation = [18, 88]
+        ph.width = m.posterW - 20
         ph.color = "#B9C7E6"
         ph.font = "font:SmallSystemFont"
         card.AppendChild(ph)
@@ -148,8 +168,8 @@ function createCard(movie as object, index as integer) as object
 
     title = CreateObject("roSGNode", "Label")
     title.text = Left(getMovieName(movie), 24)
-    title.translation = [0, 246]
-    title.width = 170
+    title.translation = [0, 218]
+    title.width = m.cardW - 12
     title.height = 48
     title.color = "#FFFFFF"
     title.wrap = true
@@ -191,7 +211,11 @@ end sub
 sub scheduleSearch()
     m.debounce.control = "stop"
     m.debounce.control = "start"
-    m.searchText.text = "Busca: " + m.searchQuery
+    if m.searchQuery = ""
+        m.searchText.text = "Buscar filmes"
+    else
+        m.searchText.text = "Busca: " + m.searchQuery
+    end if
 end sub
 
 sub applySearch()

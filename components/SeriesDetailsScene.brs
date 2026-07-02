@@ -68,7 +68,9 @@ sub selectSeasonByIndex(index as integer)
         m.episodes = []
     end if
 
-    m.focusEpisodeIndex = clampIndex(0, m.episodes.Count())
+    ' Keep the season and episode selections independent. Changing season
+    ' only resets the focused episode to the first real episode in that season.
+    m.focusEpisodeIndex = 0
     selectEpisodeByIndex(m.focusEpisodeIndex)
 end sub
 
@@ -140,21 +142,36 @@ sub updateFocus()
     m.top.SetFocus(true)
 end sub
 
+function getFieldAsString(item as object, fieldName as string) as string
+    if item = invalid then return ""
+    value = item[fieldName]
+    if value = invalid then return ""
+    return Trim(value.ToStr())
+end function
+
 function getEpisodeUrl(episode as object) as string
     if episode = invalid then return ""
-    if episode.streamUrl <> invalid and Trim(episode.streamUrl) <> "" then return Trim(episode.streamUrl)
-    if episode.url <> invalid and Trim(episode.url) <> "" then return Trim(episode.url)
+    streamUrl = getFieldAsString(episode, "streamUrl")
+    if streamUrl <> "" then return streamUrl
+    url = getFieldAsString(episode, "url")
+    if url <> "" then return url
     return ""
+end function
+
+function isSeasonItem(item as object) as boolean
+    return item <> invalid and item.episodes <> invalid
 end function
 
 sub openSeriesPlayer()
     episode = m.selectedEpisode
     url = getEpisodeUrl(episode)
+    print "selectedSeason: "; m.selectedSeason
+    print "selectedEpisode: "; episode
     print "episode.url/streamUrl: "; url
 
-    if episode = invalid or url = ""
+    if episode = invalid or isSeasonItem(episode) or url = ""
         m.status.text = "Não foi possível abrir este episódio: link de vídeo indisponível."
-        print "openSeriesPlayer chamado: bloqueado sem URL válida"
+        print "openSeriesPlayer chamado: bloqueado sem episódio/URL válida"
         return
     end if
 
@@ -190,8 +207,14 @@ function onKeyEvent(key as string, press as boolean) as boolean
             m.focusSection = "season"
             selectSeasonByIndex(m.focusSeasonIndex)
         else if m.focusSection = "season"
-            m.focusSection = "episode"
-            selectEpisodeByIndex(0)
+            selectSeasonByIndex(m.focusSeasonIndex)
+            renderEpisodes()
+            if m.episodes.Count() > 0
+                m.focusSection = "episode"
+                selectEpisodeByIndex(0)
+            else
+                m.status.text = "Esta temporada não possui episódios disponíveis."
+            end if
         else if m.focusSection = "episode"
             selectEpisodeByIndex(m.focusEpisodeIndex + 1)
         end if
@@ -222,7 +245,11 @@ function onKeyEvent(key as string, press as boolean) as boolean
         else if m.focusSection = "season"
             selectSeasonByIndex(m.focusSeasonIndex)
             renderEpisodes()
-            m.status.text = "Temporada selecionada. Escolha um episódio."
+            if m.episodes.Count() > 0
+                m.status.text = "Temporada selecionada. Escolha um episódio."
+            else
+                m.status.text = "Esta temporada não possui episódios disponíveis."
+            end if
             updateFocus()
         else if m.focusSection = "episode"
             selectEpisodeByIndex(m.focusEpisodeIndex)

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="SeriesDetailsScene" extends="Group">
+  <script type="text/brightscript" uri="pkg:/source/KeyNormalizer.brs" />
+  <script type="text/brightscript" uri="pkg:/components/SeriesDetailsScene.brs" />
+  <interface>
+    <field id="series" type="assocarray" onChange="onSeriesChanged" />
+    <field id="closeDetails" type="boolean" alwaysNotify="true" />
+  </interface>
+  <children>
+    <Rectangle id="background" width="1920" height="1080" color="#101014" />
+    <Label id="title" translation="[90,70]" width="1180" color="#FFFFFF" font="font:LargeBoldSystemFont" />
+    <Label id="playLabel" text="JOGAR" translation="[120,175]" width="320" height="58" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <Rectangle id="playBg" translation="[90,160]" width="320" height="72" color="#243B65" />
+    <Label id="status" translation="[90,255]" width="1200" height="46" color="#FFB347" font="font:MediumSystemFont" />
+    <Label text="TEMPORADAS" translation="[90,330]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <Group id="seasonList" translation="[90,390]" />
+    <Label text="EPISÓDIOS" translation="[520,330]" color="#FFFFFF" font="font:MediumBoldSystemFont" />
+    <Group id="episodeList" translation="[520,390]" />
+  </children>
+</component>

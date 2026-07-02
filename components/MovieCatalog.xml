@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<component name="MovieCatalog" extends="Group">
+  <script type="text/brightscript" uri="pkg:/source/KeyNormalizer.brs" />
+  <script type="text/brightscript" uri="pkg:/source/PlaylistStorage.brs" />
+  <script type="text/brightscript" uri="pkg:/components/MovieCatalog.brs" />
+  <interface>
+    <field id="closeCatalog" type="boolean" alwaysNotify="true" />
+    <function name="open" />
+  </interface>
+  <children>
+    <Label id="title" text="Filmes" translation="[80,45]" color="#FFFFFF" font="font:LargeBoldSystemFont" />
+    <Rectangle id="searchBg" translation="[80,108]" width="700" height="54" color="#1F2E4A" />
+    <Label id="searchText" text="Buscar filmes" translation="[105,122]" width="650" color="#B9C7E6" font="font:MediumSystemFont" />
+    <Label id="status" translation="[820,122]" width="980" color="#B9C7E6" font="font:MediumSystemFont" />
+    <Group id="grid" translation="[80,195]" />
+    <MovieCatalogService id="service" />
+    <Timer id="searchDebounce" duration="0.35" repeat="false" />
+  </children>
+</component>

@@ -8,6 +8,7 @@ sub init()
     m.login.ObserveField("closeLogin", "showHome")
     m.login.ObserveField("loginSuccess", "onLoginSuccess")
     m.movies.ObserveField("closeCatalog", "showHome")
+    m.movies.ObserveField("contentLoaded", "onContentLoaded")
 
     showHome()
 end sub
@@ -38,6 +39,7 @@ sub showMovies()
 end sub
 
 sub onLoginSuccess()
+    ClearAccountErrors()
     m.home.callFunc("setStatus", "Login realizado com sucesso")
     showHome()
 end sub
@@ -58,3 +60,8 @@ function onKeyEvent(key as string, press as boolean) as boolean
 
     return false
 end function
+
+sub onContentLoaded()
+    ClearAccountErrors()
+    m.home.callFunc("clearAccountStatus")
+end sub

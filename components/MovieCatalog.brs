@@ -8,10 +8,13 @@ sub init()
     m.debounce.ObserveField("fire", "applySearch")
     m.allMovies = []
     m.filteredMovies = []
+    m.filterScanIndex = 0
+    m.filteredComplete = false
     m.renderedCount = 0
     m.focusIndex = 0
     m.searchQuery = ""
-    m.batchSize = 36
+    m.batchSize = 80
+    m.searchPageSize = 100
     m.columns = 6
     m.cardW = 190
     m.cardH = 300
@@ -25,8 +28,8 @@ end sub
 
 sub loadMovies()
     credentials = LoadXtreamCredentials()
-    if credentials = invalid
-        m.status.text = "Faça login para carregar filmes."
+    if HasValidXtreamCredentials(credentials) <> true
+        if HasLoadedContentCache() <> true then m.status.text = "Faça login para carregar filmes."
         return
     end if
     m.status.text = "Carregando filmes..."
@@ -40,9 +43,18 @@ sub onMoviesLoaded()
     result = m.service.result
     if result = invalid then return
     if result.success <> true
-        m.status.text = result.errorMessage
+        if m.allMovies.Count() = 0 and HasLoadedContentCache() <> true
+            m.status.text = result.errorMessage
+            SaveReconnectError(result.errorMessage)
+        else
+            ClearAccountErrors()
+            resetList()
+        end if
         return
     end if
+    ClearAccountErrors()
+    MarkContentLoaded()
+    m.top.contentLoaded = true
     m.allMovies = result.movies
     resetList()
 end sub
@@ -54,7 +66,10 @@ sub clearGrid()
 end sub
 
 sub resetList()
-    m.filteredMovies = filterMovies(m.searchQuery)
+    m.filteredMovies = []
+    m.filterScanIndex = 0
+    m.filteredComplete = false
+    appendFilteredPage()
     clearGrid()
     m.renderedCount = 0
     m.focusIndex = 0
@@ -63,18 +78,33 @@ sub resetList()
     updateStatus()
 end sub
 
-function filterMovies(query as string) as object
-    if query = "" then return m.allMovies
-    result = []
-    q = LCase(query)
-    for each movie in m.allMovies
-        name = getMovieName(movie)
-        if Instr(1, LCase(name), q) > 0 then result.Push(movie)
-    end for
-    return result
-end function
+sub appendFilteredPage()
+    if m.filteredComplete = true then return
+
+    q = LCase(m.searchQuery)
+    added = 0
+    total = m.allMovies.Count()
+
+    while m.filterScanIndex < total and added < m.searchPageSize
+        movie = m.allMovies[m.filterScanIndex]
+        if m.searchQuery = ""
+            m.filteredMovies.Push(movie)
+            added = added + 1
+        else
+            name = getMovieName(movie)
+            if Instr(1, LCase(name), q) > 0
+                m.filteredMovies.Push(movie)
+                added = added + 1
+            end if
+        end if
+        m.filterScanIndex = m.filterScanIndex + 1
+    end while
+
+    if m.filterScanIndex >= total then m.filteredComplete = true
+end sub
 
 sub appendMovieBatch()
+    if m.renderedCount >= m.filteredMovies.Count() and m.filteredComplete <> true then appendFilteredPage()
     total = m.filteredMovies.Count()
     if m.renderedCount >= total then return
     endIndex = m.renderedCount + m.batchSize - 1
@@ -141,7 +171,9 @@ sub updateFocus()
 end sub
 
 sub updateStatus()
-    m.status.text = m.filteredMovies.Count().ToStr() + " filmes • exibindo " + m.renderedCount.ToStr()
+    suffix = ""
+    if m.filteredComplete <> true then suffix = "+"
+    m.status.text = m.filteredMovies.Count().ToStr() + suffix + " filmes • exibindo " + m.renderedCount.ToStr()
 end sub
 
 sub moveFocus(delta as integer)

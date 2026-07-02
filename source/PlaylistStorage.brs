@@ -27,7 +27,7 @@ end function
 
 function EnsureXtreamCredentialsForTest() as object
     saved = LoadXtreamCredentials()
-    if saved.dns <> invalid and saved.dns <> "" and saved.username <> invalid and saved.username <> "" and saved.password <> invalid and saved.password <> ""
+    if HasValidXtreamCredentials(saved)
         return saved
     end if
 
@@ -39,4 +39,35 @@ function EnsureXtreamCredentialsForTest() as object
         username: testCredentials.TEST_USERNAME
         password: testCredentials.TEST_PASSWORD
     }
+end function
+
+function HasValidXtreamCredentials(credentials as object) as boolean
+    return credentials <> invalid and credentials.dns <> invalid and credentials.dns <> "" and credentials.username <> invalid and credentials.username <> "" and credentials.password <> invalid and credentials.password <> ""
+end function
+
+function MarkContentLoaded() as void
+    section = CreateObject("roRegistrySection", "pxt_player_state")
+    section.Write("hasLoadedContent", "1")
+    section.Delete("accountError")
+    section.Delete("reconnectError")
+    section.Flush()
+end function
+
+function HasLoadedContentCache() as boolean
+    section = CreateObject("roRegistrySection", "pxt_player_state")
+    return section.Read("hasLoadedContent") = "1"
+end function
+
+function ClearAccountErrors() as void
+    section = CreateObject("roRegistrySection", "pxt_player_state")
+    section.Delete("accountError")
+    section.Delete("reconnectError")
+    section.Flush()
+end function
+
+function SaveReconnectError(message as string) as void
+    if HasLoadedContentCache() then return
+    section = CreateObject("roRegistrySection", "pxt_player_state")
+    section.Write("reconnectError", message)
+    section.Flush()
 end function

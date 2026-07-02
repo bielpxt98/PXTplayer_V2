@@ -5,6 +5,7 @@
   <script type="text/brightscript" uri="pkg:/components/MovieCatalog.brs" />
   <interface>
     <field id="closeCatalog" type="boolean" alwaysNotify="true" />
+    <field id="contentLoaded" type="boolean" alwaysNotify="true" />
     <function name="open" />
   </interface>
   <children>

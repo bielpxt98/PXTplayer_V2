@@ -14,8 +14,24 @@ sub init()
 end sub
 
 sub setStatus(message as string)
+    if isReconnectMessage(message) and HasLoadedContentCache()
+        m.status.text = ""
+        ClearAccountErrors()
+        return
+    end if
     m.status.text = message
 end sub
+
+sub clearAccountStatus()
+    m.status.text = ""
+    ClearAccountErrors()
+end sub
+
+function isReconnectMessage(message as string) as boolean
+    if message = invalid then return false
+    text = LCase(message)
+    return Instr(1, text, "reconectar") > 0 or Instr(1, text, "conta") > 0 or Instr(1, text, "reconnect") > 0
+end function
 
 sub updateFocus()
     for i = 0 to m.buttons.Count() - 1

@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <component name="HomeScreen" extends="Group">
   <script type="text/brightscript" uri="pkg:/source/KeyNormalizer.brs" />
+  <script type="text/brightscript" uri="pkg:/source/PlaylistStorage.brs" />
   <script type="text/brightscript" uri="pkg:/components/HomeScreen.brs" />
   <interface>
     <field id="openLogin" type="boolean" alwaysNotify="true" />
     <field id="openMovies" type="boolean" alwaysNotify="true" />
     <field id="navigationEnabled" type="boolean" value="false" />
     <function name="setStatus" />
+    <function name="clearAccountStatus" />
   </interface>
   <children>
     <Label id="title" text="PXT Player" translation="[120,90]" color="#FFFFFF" font="font:LargeBoldSystemFont" />

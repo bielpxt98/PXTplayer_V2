@@ -11,7 +11,7 @@ const {
   startCache
 } = require('./src/cache');
 const { bootstrap, login, normalizeDns, requireCredentials } = require('./src/xtream');
-const { isValidSearchType, searchCache } = require('./src/search');
+const { isValidSearchType, normalizeText, searchCache } = require('./src/search');
 const { getBootstrapStatus, setBootstrapCatalog } = require('./src/bootstrapCatalog');
 
 const app = express();
@@ -152,7 +152,7 @@ app.get('/api/cache/status', (req, res) => {
   }
 });
 
-// Pesquisa somente no cache ja carregado, sem chamar a API Xtream novamente.
+// Pesquisa global somente no cache completo ja carregado, sem chamar a API Xtream novamente.
 app.post('/api/search', (req, res) => {
   const { dns, username, query, type = 'all' } = req.body;
 
@@ -160,18 +160,48 @@ app.post('/api/search', (req, res) => {
     requireCredentials({ dns, username }, false);
 
     if (!isValidSearchType(type)) {
-      return res.status(400).json({ error: 'type deve ser movies, series ou all.' });
+      return res.status(400).json({ ok: false, error: 'type deve ser movies, series ou all.' });
     }
 
     const entry = getCache(dns, username);
 
     if (!entry || !entry.ready) {
-      return res.status(404).json({ error: 'Cache nao encontrado ou ainda nao carregado.' });
+      return res.status(404).json({ ok: false, error: 'cache_not_ready' });
     }
 
+    const normalizedType = String(type || 'all').toLowerCase();
+    const normalizedQuery = normalizeText(query);
+    const results = searchCache(entry, normalizedQuery, normalizedType, 50);
+
     res.json({
-      results: searchCache(entry, query, type, 50),
-      cache: cacheStatus(entry)
+      ok: true,
+      query: normalizedQuery,
+      type: normalizedType,
+      count: results.length,
+      results
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
+});
+
+app.get('/api/search/status', (req, res) => {
+  const { dns, username } = req.query;
+
+  try {
+    requireCredentials({ dns, username }, false);
+    const entry = getCache(dns, username);
+    const counts = cacheCounts(entry);
+
+    res.json({
+      ok: true,
+      exists: Boolean(entry),
+      ready: Boolean(entry?.ready),
+      loading: Boolean(entry?.loading),
+      searchable: Boolean(entry?.ready && (counts.movies || counts.series)),
+      counts,
+      loadedAt: entry?.loadedAt || null,
+      updatedAt: entry?.updatedAt || null
     });
   } catch (error) {
     handleError(res, error);

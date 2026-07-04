@@ -11,7 +11,7 @@ const {
   startCache
 } = require('./src/cache');
 const { bootstrap, login, normalizeDns, requireCredentials } = require('./src/xtream');
-const { isValidSearchType, normalizeText, searchCache } = require('./src/search');
+const { isValidSearchType, normalizeText, parseSearchLimit, searchCache } = require('./src/search');
 const { getBootstrapStatus, setBootstrapCatalog } = require('./src/bootstrapCatalog');
 
 const app = express();
@@ -154,7 +154,7 @@ app.get('/api/cache/status', (req, res) => {
 
 // Pesquisa global somente no cache completo ja carregado, sem chamar a API Xtream novamente.
 app.post('/api/search', (req, res) => {
-  const { dns, username, query, type = 'all' } = req.body;
+  const { dns, username, query, type = 'all', limit } = req.body;
 
   try {
     requireCredentials({ dns, username }, false);
@@ -165,18 +165,20 @@ app.post('/api/search', (req, res) => {
 
     const entry = getCache(dns, username);
 
-    if (!entry || !entry.ready) {
+    if (!entry || !entry.ready || !entry.searchIndex) {
       return res.status(404).json({ ok: false, error: 'cache_not_ready' });
     }
 
     const normalizedType = String(type || 'all').toLowerCase();
     const normalizedQuery = normalizeText(query);
-    const results = searchCache(entry, normalizedQuery, normalizedType, 50);
+    const boundedLimit = parseSearchLimit(limit);
+    const results = searchCache(entry, normalizedQuery, normalizedType, boundedLimit);
 
     res.json({
       ok: true,
       query: normalizedQuery,
       type: normalizedType,
+      limit: boundedLimit,
       count: results.length,
       results
     });

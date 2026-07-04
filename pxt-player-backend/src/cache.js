@@ -1,4 +1,6 @@
 // Cache simples em memoria por conta Xtream. Nao persiste senhas, tokens ou dados em disco.
+const { buildSearchIndex } = require('./search');
+
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const accounts = new Map();
 
@@ -34,6 +36,7 @@ function createEntry(data = {}) {
     ready: false,
     loading: false,
     errors: {},
+    searchIndex: { moviesIndex: [], seriesIndex: [] },
     ...data
   };
 }
@@ -97,11 +100,16 @@ function startCache(dns, username) {
 }
 
 function finishCache(dns, username, data) {
+  const movies = Array.isArray(data.movies) ? data.movies : [];
+  const series = Array.isArray(data.series) ? data.series : [];
+  const searchIndex = buildSearchIndex({ movies, series });
+
   return setCache(dns, username, {
     movieCategories: Array.isArray(data.movieCategories) ? data.movieCategories : [],
-    movies: Array.isArray(data.movies) ? data.movies : [],
+    movies,
     seriesCategories: Array.isArray(data.seriesCategories) ? data.seriesCategories : [],
-    series: Array.isArray(data.series) ? data.series : [],
+    series,
+    searchIndex,
     loadedAt: data.loadedAt || nowIso(),
     ready: Boolean(data.ready),
     loading: false,

@@ -77,7 +77,7 @@ function loadCacheInBackground(credentials) {
     });
 }
 
-// Endpoint simples para monitoramento de hospedagens como Railway/Fly/VPS.
+// Endpoint simples para monitoramento de hospedagens como Render/Railway/Fly/VPS.
 app.get('/health', (req, res) => {
   res.json({ ok: true });
 });

@@ -162,21 +162,67 @@ async function login(credentials) {
   }
 }
 
+
+function normalizeList(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function resultError(result) {
+  if (result.status !== 'rejected') {
+    return null;
+  }
+
+  return result.reason?.message || 'Erro ao carregar dados da API Xtream.';
+}
+
+async function loadGroup(groupName, credentials, actions) {
+  console.log(`[bootstrap] carregando ${groupName}`);
+
+  return Promise.allSettled(actions.map((action) => fetchXtreamJson(credentials, action)));
+}
+
 async function bootstrap(credentials) {
   requireCredentials(credentials);
 
-  const [movieCategories, seriesCategories, movies, series] = await Promise.all([
-    fetchXtreamJson(credentials, 'get_vod_categories'),
-    fetchXtreamJson(credentials, 'get_series_categories'),
-    fetchXtreamJson(credentials, 'get_vod_streams'),
-    fetchXtreamJson(credentials, 'get_series')
+  console.log('[bootstrap] iniciando bootstrap');
+  const startedAt = Date.now();
+
+  const [movieResults, seriesResults] = await Promise.all([
+    loadGroup('filmes', credentials, ['get_vod_categories', 'get_vod_streams']),
+    loadGroup('séries', credentials, ['get_series_categories', 'get_series'])
   ]);
 
+  const [movieCategoriesResult, moviesResult] = movieResults;
+  const [seriesCategoriesResult, seriesResult] = seriesResults;
+
+  const errors = {};
+
+  const movieCategoriesError = resultError(movieCategoriesResult);
+  const moviesError = resultError(moviesResult);
+  const seriesCategoriesError = resultError(seriesCategoriesResult);
+  const seriesError = resultError(seriesResult);
+
+  if (movieCategoriesError) errors.movieCategories = movieCategoriesError;
+  if (moviesError) errors.movies = moviesError;
+  if (seriesCategoriesError) errors.seriesCategories = seriesCategoriesError;
+  if (seriesError) errors.series = seriesError;
+
+  const loadedAt = new Date().toISOString();
+  const loadTimeMs = Date.now() - startedAt;
+  const ready = Object.keys(errors).length === 0;
+
+  console.log(`[bootstrap] bootstrap concluído em ${loadTimeMs}ms`);
+  console.log(`[bootstrap] tempo total: ${loadTimeMs}ms`);
+
   return {
-    movieCategories: Array.isArray(movieCategories) ? movieCategories : [],
-    seriesCategories: Array.isArray(seriesCategories) ? seriesCategories : [],
-    movies: Array.isArray(movies) ? movies : [],
-    series: Array.isArray(series) ? series : []
+    movieCategories: movieCategoriesResult.status === 'fulfilled' ? normalizeList(movieCategoriesResult.value) : [],
+    movies: moviesResult.status === 'fulfilled' ? normalizeList(moviesResult.value) : [],
+    seriesCategories: seriesCategoriesResult.status === 'fulfilled' ? normalizeList(seriesCategoriesResult.value) : [],
+    series: seriesResult.status === 'fulfilled' ? normalizeList(seriesResult.value) : [],
+    loadedAt,
+    loadTimeMs,
+    ready,
+    errors
   };
 }
 

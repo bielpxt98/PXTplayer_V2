@@ -98,3 +98,97 @@ Outros erros também seguem o mesmo formato:
   "error": "Invalid username or password."
 }
 ```
+
+## Bootstrap do catálogo
+
+`POST /api/bootstrap` carrega, em memória, o catálogo inicial de filmes e séries retornado pela API Xtream. O backend não grava esses dados em disco; eles ficam disponíveis apenas enquanto o processo do servidor estiver em execução.
+
+A rota valida `dns`, `username` e `password`, chama as ações abaixo em paralelo sempre que possível e registra logs simples de início, carregamento de filmes, carregamento de séries, conclusão e tempo total:
+
+- `action=get_vod_categories`
+- `action=get_vod_streams`
+- `action=get_series_categories`
+- `action=get_series`
+
+### Requisição
+
+```bash
+curl -X POST http://localhost:3000/api/bootstrap \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dns": "https://servidor.com",
+    "username": "usuario",
+    "password": "senha"
+  }'
+```
+
+### Exemplo de resposta
+
+```json
+{
+  "ok": true,
+  "ready": true,
+  "movieCategories": 18,
+  "movies": 8500,
+  "seriesCategories": 12,
+  "series": 640,
+  "loadedAt": "2026-07-04T12:34:56.789Z",
+  "loadTimeMs": 1432,
+  "errors": {}
+}
+```
+
+Se uma parte do catálogo falhar, o servidor não é derrubado. As partes carregadas são mantidas em memória, `ready` fica `false` e o campo `errors` informa individualmente o que falhou:
+
+```json
+{
+  "ok": true,
+  "ready": false,
+  "movieCategories": 0,
+  "movies": 0,
+  "seriesCategories": 12,
+  "series": 640,
+  "loadedAt": "2026-07-04T12:34:56.789Z",
+  "loadTimeMs": 1432,
+  "errors": {
+    "movieCategories": "Xtream server responded with HTTP 502.",
+    "movies": "Xtream server responded with HTTP 502."
+  }
+}
+```
+
+## Status do bootstrap
+
+`GET /api/bootstrap/status` informa se o catálogo em memória está pronto e quantos itens foram carregados.
+
+```bash
+curl http://localhost:3000/api/bootstrap/status
+```
+
+Exemplo de resposta antes do bootstrap:
+
+```json
+{
+  "ready": false,
+  "loadedAt": null,
+  "movieCategories": 0,
+  "movies": 0,
+  "seriesCategories": 0,
+  "series": 0,
+  "errors": {}
+}
+```
+
+Exemplo de resposta após o bootstrap:
+
+```json
+{
+  "ready": true,
+  "loadedAt": "2026-07-04T12:34:56.789Z",
+  "movieCategories": 18,
+  "movies": 8500,
+  "seriesCategories": 12,
+  "series": 640,
+  "errors": {}
+}
+```

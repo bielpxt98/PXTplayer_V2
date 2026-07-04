@@ -206,6 +206,143 @@ Exemplo de resposta:
 }
 ```
 
+## Busca global de filmes e séries
+
+`POST /api/search` pesquisa somente no cache completo da conta (`dns + username`) já carregado pelo `POST /api/bootstrap`. A rota não chama a API Xtream, não baixa catálogo durante a busca, não usa categorias abertas no Roku e não depende de histórico de navegação ou itens visíveis na tela. Se o cache ainda não existir ou não estiver pronto, a resposta é `cache_not_ready`.
+
+A busca normaliza o texto para lowercase, remove acentos, ignora espaços duplicados e compara a consulta com `name`, `title` e `stream_name` quando esses campos existem. O parâmetro `type` aceita `movies`, `series` ou `all`; em todos os casos a pesquisa percorre o catálogo completo salvo em `cache.movies` e/ou `cache.series`, sem filtrar por `category_id`. Os resultados são ordenados por itens que começam com a busca, depois itens com a busca em outra palavra e, por fim, itens que apenas contêm a busca, com limite de 50 itens.
+
+### Exemplo de busca de filmes
+
+```bash
+curl -X POST http://localhost:3000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dns": "https://servidor.com",
+    "username": "usuario",
+    "query": "hom",
+    "type": "movies"
+  }'
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "ok": true,
+  "query": "hom",
+  "type": "movies",
+  "count": 1,
+  "results": [
+    {
+      "type": "movie",
+      "id": "123",
+      "name": "Homem Aranha",
+      "poster": "https://servidor.com/posters/homem-aranha.jpg",
+      "category_id": "10",
+      "year": "2021",
+      "container_extension": "mp4"
+    }
+  ]
+}
+```
+
+### Exemplo de busca de séries
+
+```bash
+curl -X POST http://localhost:3000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dns": "https://servidor.com",
+    "username": "usuario",
+    "query": "home",
+    "type": "series"
+  }'
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "ok": true,
+  "query": "home",
+  "type": "series",
+  "count": 1,
+  "results": [
+    {
+      "type": "series",
+      "id": "987",
+      "name": "Home Before Dark",
+      "poster": "https://servidor.com/covers/home-before-dark.jpg",
+      "category_id": "22",
+      "year": "2020"
+    }
+  ]
+}
+```
+
+### Exemplo de busca all
+
+```bash
+curl -X POST http://localhost:3000/api/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dns": "https://servidor.com",
+    "username": "usuario",
+    "query": "hom",
+    "type": "all"
+  }'
+```
+
+Exemplo de resposta sem resultados:
+
+```json
+{
+  "ok": true,
+  "query": "hom",
+  "type": "all",
+  "count": 0,
+  "results": []
+}
+```
+
+### Resposta quando o cache não está pronto
+
+```json
+{
+  "ok": false,
+  "error": "cache_not_ready"
+}
+```
+
+### Status da busca
+
+`GET /api/search/status?dns=...&username=...` informa se o cache da conta está pronto para pesquisa. A senha não é enviada nessa rota.
+
+```bash
+curl "http://localhost:3000/api/search/status?dns=https%3A%2F%2Fservidor.com&username=usuario"
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "ok": true,
+  "exists": true,
+  "ready": true,
+  "loading": false,
+  "searchable": true,
+  "counts": {
+    "movieCategories": 18,
+    "movies": 8500,
+    "seriesCategories": 12,
+    "series": 640
+  },
+  "loadedAt": "2026-07-04T12:34:56.789Z",
+  "updatedAt": "2026-07-04T12:34:56.789Z"
+}
+```
+
 ## Limpeza do cache por conta
 
 `POST /api/cache/clear` remove apenas o cache da conta indicada por `dns + username`. A senha não é necessária e não é armazenada.

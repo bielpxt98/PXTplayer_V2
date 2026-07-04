@@ -101,9 +101,9 @@ Outros erros também seguem o mesmo formato:
 
 ## Bootstrap do catálogo
 
-`POST /api/bootstrap` carrega, em memória, o catálogo inicial de filmes e séries retornado pela API Xtream. O backend não grava esses dados em disco; eles ficam disponíveis apenas enquanto o processo do servidor estiver em execução.
+`POST /api/bootstrap` carrega, em memória, o catálogo inicial de filmes e séries retornado pela API Xtream em um cache por conta (`dns + username`). O backend não grava esses dados em disco, não guarda a senha no cache e não retorna a senha em respostas; os dados ficam disponíveis apenas enquanto o processo do servidor estiver em execução. O cache é válido por 6 horas.
 
-A rota valida `dns`, `username` e `password`, chama as ações abaixo em paralelo sempre que possível e registra logs simples de início, carregamento de filmes, carregamento de séries, conclusão e tempo total:
+A rota valida `dns`, `username` e `password`. Antes de chamar a API Xtream, ela verifica se já existe cache pronto para a conta. Se o cache estiver pronto e válido, o backend retorna as contagens do cache. Se já houver um carregamento em andamento, retorna `loading`. Se o cache estiver expirado, mantém os dados antigos disponíveis e inicia uma atualização em segundo plano quando possível. Quando precisa carregar, chama as ações abaixo em paralelo sempre que possível e registra logs de cache criado, cache usado, cache expirado, cache limpo e carregamento em andamento:
 
 - `action=get_vod_categories`
 - `action=get_vod_streams`
@@ -122,19 +122,41 @@ curl -X POST http://localhost:3000/api/bootstrap \
   }'
 ```
 
-### Exemplo de resposta
+### Exemplo de resposta com cache pronto
 
 ```json
 {
   "ok": true,
   "ready": true,
+  "loading": false,
   "movieCategories": 18,
   "movies": 8500,
   "seriesCategories": 12,
   "series": 640,
+  "startedAt": "2026-07-04T12:34:00.000Z",
   "loadedAt": "2026-07-04T12:34:56.789Z",
-  "loadTimeMs": 1432,
-  "errors": {}
+  "updatedAt": "2026-07-04T12:34:56.789Z",
+  "errors": {},
+  "source": "cache"
+}
+```
+
+### Exemplo de resposta durante carregamento
+
+```json
+{
+  "ok": true,
+  "ready": false,
+  "loading": true,
+  "movieCategories": 0,
+  "movies": 0,
+  "seriesCategories": 0,
+  "series": 0,
+  "startedAt": "2026-07-04T12:34:00.000Z",
+  "loadedAt": null,
+  "updatedAt": "2026-07-04T12:34:00.000Z",
+  "errors": {},
+  "status": "loading"
 }
 ```
 
@@ -154,6 +176,55 @@ Se uma parte do catálogo falhar, o servidor não é derrubado. As partes carreg
     "movieCategories": "Xtream server responded with HTTP 502.",
     "movies": "Xtream server responded with HTTP 502."
   }
+}
+```
+
+## Status do cache por conta
+
+`GET /api/cache/status?dns=...&username=...` informa se existe cache para uma conta específica, se ele está pronto ou carregando e as contagens carregadas. A senha não é enviada nessa rota.
+
+```bash
+curl "http://localhost:3000/api/cache/status?dns=https%3A%2F%2Fservidor.com&username=usuario"
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "ok": true,
+  "exists": true,
+  "ready": true,
+  "loading": false,
+  "counts": {
+    "movieCategories": 18,
+    "movies": 8500,
+    "seriesCategories": 12,
+    "series": 640
+  },
+  "loadedAt": "2026-07-04T12:34:56.789Z",
+  "updatedAt": "2026-07-04T12:34:56.789Z"
+}
+```
+
+## Limpeza do cache por conta
+
+`POST /api/cache/clear` remove apenas o cache da conta indicada por `dns + username`. A senha não é necessária e não é armazenada.
+
+```bash
+curl -X POST http://localhost:3000/api/cache/clear \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dns": "https://servidor.com",
+    "username": "usuario"
+  }'
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "ok": true,
+  "cleared": true
 }
 ```
 

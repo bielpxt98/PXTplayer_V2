@@ -1,6 +1,16 @@
 const express = require('express');
-const { clearCache, getCache } = require('./src/cache');
-const { bootstrap, login, requireCredentials } = require('./src/xtream');
+const {
+  cacheCounts,
+  clearCache,
+  failCache,
+  finishCache,
+  getCache,
+  hasCatalogData,
+  isCacheExpired,
+  isCacheValid,
+  startCache
+} = require('./src/cache');
+const { bootstrap, login, normalizeDns, requireCredentials } = require('./src/xtream');
 const { isValidSearchType, searchCache } = require('./src/search');
 const { getBootstrapStatus, setBootstrapCatalog } = require('./src/bootstrapCatalog');
 
@@ -12,9 +22,34 @@ app.use(express.json({ limit: '1mb' }));
 function cacheStatus(entry) {
   return {
     startedAt: entry.startedAt,
+    loadedAt: entry.loadedAt,
     updatedAt: entry.updatedAt,
-    ready: entry.ready
+    ready: entry.ready,
+    loading: entry.loading
   };
+}
+
+function catalogResponse(entry, extra = {}) {
+  const counts = cacheCounts(entry);
+
+  return {
+    ok: true,
+    ready: Boolean(entry.ready),
+    loading: Boolean(entry.loading),
+    movieCategories: counts.movieCategories,
+    movies: counts.movies,
+    seriesCategories: counts.seriesCategories,
+    series: counts.series,
+    startedAt: entry.startedAt,
+    loadedAt: entry.loadedAt,
+    updatedAt: entry.updatedAt,
+    errors: entry.errors || {},
+    ...extra
+  };
+}
+
+function accountLogContext(dns, username) {
+  return `dns=${normalizeDns(dns)} username=${username}`;
 }
 
 function handleError(res, error) {
@@ -23,6 +58,23 @@ function handleError(res, error) {
     ok: false,
     error: error.message || 'Erro interno.'
   });
+}
+
+function loadCacheInBackground(credentials) {
+  const { dns, username } = credentials;
+  startCache(dns, username);
+  console.log(`[cache] carregamento em andamento ${accountLogContext(dns, username)}`);
+
+  bootstrap(credentials)
+    .then((data) => {
+      const entry = finishCache(dns, username, data);
+      setBootstrapCatalog(entry);
+      console.log(`[cache] cache criado ${accountLogContext(dns, username)}`);
+    })
+    .catch((error) => {
+      failCache(dns, username, error);
+      console.error(`[cache] erro ao carregar ${accountLogContext(dns, username)}: ${error.message}`);
+    });
 }
 
 // Endpoint simples para monitoramento de hospedagens como Railway/Fly/VPS.
@@ -40,25 +92,36 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Carrega o catalogo inicial da API Xtream e guarda em memoria durante a execucao do servidor.
-app.post('/api/bootstrap', async (req, res) => {
+// Carrega o catalogo inicial da API Xtream e guarda em memoria por conta durante a execucao do servidor.
+app.post('/api/bootstrap', (req, res) => {
   try {
     requireCredentials(req.body);
+    const { dns, username } = req.body;
+    const entry = getCache(dns, username);
 
-    const data = await bootstrap(req.body);
-    const catalog = setBootstrapCatalog(data);
+    if (isCacheValid(entry)) {
+      console.log(`[cache] cache usado ${accountLogContext(dns, username)}`);
+      return res.json(catalogResponse(entry, { source: 'cache' }));
+    }
 
-    res.json({
-      ok: true,
-      ready: catalog.ready,
-      movieCategories: catalog.movieCategories.length,
-      movies: catalog.movies.length,
-      seriesCategories: catalog.seriesCategories.length,
-      series: catalog.series.length,
-      loadedAt: catalog.loadedAt,
-      loadTimeMs: data.loadTimeMs,
-      errors: catalog.errors
-    });
+    if (entry?.loading) {
+      console.log(`[cache] carregamento em andamento ${accountLogContext(dns, username)}`);
+      return res.json(catalogResponse(entry, { status: 'loading' }));
+    }
+
+    if (entry && isCacheExpired(entry)) {
+      console.log(`[cache] cache expirado ${accountLogContext(dns, username)}`);
+      loadCacheInBackground(req.body);
+
+      if (hasCatalogData(entry)) {
+        return res.json(catalogResponse(entry, { expired: true, refreshing: true, source: 'stale-cache' }));
+      }
+
+      return res.json(catalogResponse(getCache(dns, username), { status: 'loading' }));
+    }
+
+    loadCacheInBackground(req.body);
+    return res.json(catalogResponse(getCache(dns, username), { status: 'loading' }));
   } catch (error) {
     handleError(res, error);
   }
@@ -66,6 +129,27 @@ app.post('/api/bootstrap', async (req, res) => {
 
 app.get('/api/bootstrap/status', (_req, res) => {
   res.json(getBootstrapStatus());
+});
+
+app.get('/api/cache/status', (req, res) => {
+  const { dns, username } = req.query;
+
+  try {
+    requireCredentials({ dns, username }, false);
+    const entry = getCache(dns, username);
+
+    res.json({
+      ok: true,
+      exists: Boolean(entry),
+      ready: Boolean(entry?.ready),
+      loading: Boolean(entry?.loading),
+      counts: cacheCounts(entry),
+      loadedAt: entry?.loadedAt || null,
+      updatedAt: entry?.updatedAt || null
+    });
+  } catch (error) {
+    handleError(res, error);
+  }
 });
 
 // Pesquisa somente no cache ja carregado, sem chamar a API Xtream novamente.
@@ -101,7 +185,8 @@ app.post('/api/cache/clear', (req, res) => {
   try {
     requireCredentials({ dns, username }, false);
     const cleared = clearCache(dns, username);
-    res.json({ cleared });
+    console.log(`[cache] cache limpo ${accountLogContext(dns, username)}`);
+    res.json({ ok: true, cleared });
   } catch (error) {
     handleError(res, error);
   }

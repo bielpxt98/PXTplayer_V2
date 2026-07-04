@@ -31,6 +31,35 @@ Resposta esperada:
 }
 ```
 
+
+## Deploy no Render
+
+Este backend está pronto para rodar como **Web Service** no Render usando a porta dinâmica fornecida pela plataforma. O servidor usa `process.env.PORT || 3000`, então em produção o Render injeta `PORT` automaticamente e, em desenvolvimento local, a porta padrão continua sendo `3000`.
+
+### Configuração sugerida
+
+1. Crie um novo **Web Service** no Render apontando para este repositório.
+2. Em **Root Directory**, informe `pxt-player-backend` caso o repositório completo do player Roku seja usado no deploy.
+3. Configure os comandos:
+   - **Build Command:** `npm install`
+   - **Start Command:** `npm start`
+4. Não cadastre credenciais Xtream como variáveis do serviço. O backend recebe `dns`, `username` e `password` somente nas requisições necessárias e não salva essas credenciais em disco.
+5. Após publicar, valide o serviço com:
+
+```bash
+curl https://SEU-SERVICO.onrender.com/health
+```
+
+Resposta esperada:
+
+```json
+{
+  "ok": true
+}
+```
+
+Use a URL pública do Render como base URL do backend no app Roku, por exemplo `https://SEU-SERVICO.onrender.com`.
+
 ## Login Xtream
 
 ### Requisição

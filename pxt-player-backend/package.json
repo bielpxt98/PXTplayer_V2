@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test:performance": "node scripts/performance-test.js",
+    "test:large": "node scripts/performance-test.js"
   },
   "keywords": [
     "pxt-player",

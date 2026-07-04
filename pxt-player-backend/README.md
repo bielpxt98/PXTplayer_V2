@@ -210,7 +210,7 @@ Exemplo de resposta:
 
 `POST /api/search` pesquisa somente no cache completo da conta (`dns + username`) já carregado pelo `POST /api/bootstrap`. A rota não chama a API Xtream, não baixa catálogo durante a busca, não usa categorias abertas no Roku e não depende de histórico de navegação ou itens visíveis na tela. Se o cache ainda não existir ou não estiver pronto, a resposta é `cache_not_ready`.
 
-A busca normaliza o texto para lowercase, remove acentos, ignora espaços duplicados e compara a consulta com `name`, `title` e `stream_name` quando esses campos existem. O parâmetro `type` aceita `movies`, `series` ou `all`; em todos os casos a pesquisa percorre o catálogo completo salvo em `cache.movies` e/ou `cache.series`, sem filtrar por `category_id`. Os resultados são ordenados por itens que começam com a busca, depois itens com a busca em outra palavra e, por fim, itens que apenas contêm a busca, com limite de 50 itens.
+A busca usa um índice em memória criado por conta (`dns + username`) assim que o bootstrap/cache fica pronto, com `moviesIndex` e `seriesIndex`. O índice mantém apenas os dados necessários para resposta e busca (`type`, `id`, `name`, `normalizedName`, `poster`, `category_id`, ano/data quando existir e `container_extension` para filmes), evitando varrer o catálogo bruto completo durante a pesquisa. A busca normaliza o texto para lowercase, remove acentos, ignora espaços duplicados e compara a consulta com `name`, `title` e `stream_name` quando esses campos existem. O parâmetro `type` aceita `movies`, `series` ou `all`; os resultados são ordenados por itens que começam com a busca, depois itens em que alguma palavra começa com a busca e, por fim, itens que apenas contêm a busca. O limite padrão é 50, com suporte opcional a `limit` no corpo e máximo de 100 itens.
 
 ### Exemplo de busca de filmes
 
@@ -221,7 +221,8 @@ curl -X POST http://localhost:3000/api/search \
     "dns": "https://servidor.com",
     "username": "usuario",
     "query": "hom",
-    "type": "movies"
+    "type": "movies",
+    "limit": 50
   }'
 ```
 
@@ -232,6 +233,7 @@ Exemplo de resposta:
   "ok": true,
   "query": "hom",
   "type": "movies",
+  "limit": 50,
   "count": 1,
   "results": [
     {
@@ -275,7 +277,7 @@ Exemplo de resposta:
       "name": "Home Before Dark",
       "poster": "https://servidor.com/covers/home-before-dark.jpg",
       "category_id": "22",
-      "year": "2020"
+      "releaseDate": "2020-01-01"
     }
   ]
 }
@@ -301,6 +303,7 @@ Exemplo de resposta sem resultados:
   "ok": true,
   "query": "hom",
   "type": "all",
+  "limit": 50,
   "count": 0,
   "results": []
 }
@@ -400,3 +403,53 @@ Exemplo de resposta após o bootstrap:
   "errors": {}
 }
 ```
+
+## Teste de desempenho com catálogo grande
+
+O backend inclui um teste de desempenho para validar o bootstrap, o status do cache e a busca global antes da integração com o Roku. O teste não altera o app Roku e não grava senha em logs ou respostas.
+
+### Rodar com mock grande
+
+Sem variáveis Xtream, o script inicia um servidor Xtream mock local e gera automaticamente pelo menos 20.000 filmes, 10.000 séries e categorias variadas:
+
+```bash
+npm run test:large
+```
+
+O comando `npm run test:performance` executa o mesmo script:
+
+```bash
+npm run test:performance
+```
+
+### Rodar com conta Xtream real
+
+Defina as variáveis abaixo para testar contra uma conta real. A senha é usada somente para chamar o bootstrap e não é impressa no relatório:
+
+```bash
+XTREAM_DNS="https://servidor.com" \
+XTREAM_USERNAME="usuario" \
+XTREAM_PASSWORD="senha" \
+npm run test:performance
+```
+
+### Como interpretar o relatório
+
+O script imprime um JSON no fim da execução:
+
+```json
+{
+  "bootstrapTimeMs": 0,
+  "movies": 20000,
+  "series": 10000,
+  "cacheReady": true,
+  "averageSearchMs": 0,
+  "memoryUsageMb": 0
+}
+```
+
+- `bootstrapTimeMs`: tempo total entre chamar `/api/bootstrap` e o `/api/cache/status` ficar `ready: true`.
+- `movies` e `series`: quantidades carregadas no cache por conta.
+- `cacheReady`: deve ser `true`; se for `false`, a busca deve responder `cache_not_ready`.
+- `averageSearchMs`: média das chamadas a `/api/search`, que usam o índice em memória por conta (`dns + username`) em vez do catálogo bruto completo.
+- `memoryUsageMb`: uso aproximado de memória RSS do processo que executa o teste.

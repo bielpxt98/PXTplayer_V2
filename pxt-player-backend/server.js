@@ -1,7 +1,8 @@
 const express = require('express');
-const { clearCache, getCache, setCache, startCache } = require('./src/cache');
+const { clearCache, getCache } = require('./src/cache');
 const { bootstrap, login, requireCredentials } = require('./src/xtream');
 const { isValidSearchType, searchCache } = require('./src/search');
+const { getBootstrapStatus, setBootstrapCatalog } = require('./src/bootstrapCatalog');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -39,34 +40,32 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Carrega os catalogos principais em paralelo e guarda tudo em memoria por conta.
+// Carrega o catalogo inicial da API Xtream e guarda em memoria durante a execucao do servidor.
 app.post('/api/bootstrap', async (req, res) => {
-  const { dns, username } = req.body;
-
   try {
     requireCredentials(req.body);
-    startCache(dns, username);
 
     const data = await bootstrap(req.body);
-    const entry = setCache(dns, username, {
-      ...data,
-      ready: true
-    });
+    const catalog = setBootstrapCatalog(data);
 
     res.json({
-      movieCategories: entry.movieCategories,
-      seriesCategories: entry.seriesCategories,
-      firstMovies: entry.movies.slice(0, 50),
-      firstSeries: entry.series.slice(0, 50),
-      cache: cacheStatus(entry)
+      ok: true,
+      ready: catalog.ready,
+      movieCategories: catalog.movieCategories.length,
+      movies: catalog.movies.length,
+      seriesCategories: catalog.seriesCategories.length,
+      series: catalog.series.length,
+      loadedAt: catalog.loadedAt,
+      loadTimeMs: data.loadTimeMs,
+      errors: catalog.errors
     });
   } catch (error) {
-    if (dns && username) {
-      setCache(dns, username, { ready: false });
-    }
-
     handleError(res, error);
   }
+});
+
+app.get('/api/bootstrap/status', (_req, res) => {
+  res.json(getBootstrapStatus());
 });
 
 // Pesquisa somente no cache ja carregado, sem chamar a API Xtream novamente.

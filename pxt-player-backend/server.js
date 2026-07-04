@@ -19,6 +19,7 @@ function cacheStatus(entry) {
 function handleError(res, error) {
   const statusCode = error.statusCode || 500;
   res.status(statusCode).json({
+    ok: false,
     error: error.message || 'Erro interno.'
   });
 }
@@ -28,7 +29,7 @@ app.get('/health', (req, res) => {
   res.json({ ok: true });
 });
 
-// Valida credenciais diretamente na API Xtream e devolve a resposta original.
+// Valida credenciais diretamente na API Xtream e devolve uma resposta normalizada.
 app.post('/api/login', async (req, res) => {
   try {
     const data = await login(req.body);

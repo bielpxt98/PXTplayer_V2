@@ -1,4 +1,5 @@
 const express = require('express');
+const { requireLocal } = require('./requireLocal');
 const {
   cacheCounts,
   clearCache,
@@ -9,11 +10,11 @@ const {
   isCacheExpired,
   isCacheValid,
   startCache
-} = require('./src/cache');
-const { bootstrap, login, normalizeDns, requireCredentials } = require('./src/xtream');
-const { isValidSearchType, normalizeText, parseSearchLimit, searchCache } = require('./src/search');
-const { getBootstrapStatus, setBootstrapCatalog } = require('./src/bootstrapCatalog');
-const { buildCatalogResponse, requireCatalogEntry } = require('./src/catalog');
+} = requireLocal('cache');
+const { bootstrap, login, normalizeDns, requireCredentials } = requireLocal('xtream');
+const { isValidSearchType, normalizeText, parseSearchLimit, searchCache } = requireLocal('search');
+const { getBootstrapStatus, setBootstrapCatalog } = requireLocal('bootstrapCatalog');
+const { buildCatalogResponse, requireCatalogEntry } = requireLocal('catalog');
 
 const app = express();
 const port = process.env.PORT || 3000;

@@ -1,6 +1,8 @@
 // Cache simples em memoria por conta Xtream. Nao persiste senhas, tokens ou dados em disco.
-const { buildSearchIndex } = require('./search');
-const { buildCategoryIndex } = require('./catalogIndex');
+const path = require('path');
+const { requireLocal } = require(path.join(__dirname, '..', 'requireLocal'));
+const { buildSearchIndex } = requireLocal('search');
+const { buildCategoryIndex } = requireLocal('catalogIndex');
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const accounts = new Map();

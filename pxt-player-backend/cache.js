@@ -1,17 +1,15 @@
 // Cache simples em memoria por conta Xtream. Nao persiste senhas, tokens ou dados em disco.
-const { buildSearchIndex } = require('./search');
-const { buildCategoryIndex } = require('./catalogIndex');
+const path = require('path');
+const { requireLocal } = require(path.join(__dirname, '..', 'requireLocal'));
+const { buildSearchIndex } = requireLocal('search');
+const { buildCategoryIndex } = requireLocal('catalogIndex');
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const accounts = new Map();
 
 function normalizeCacheDns(dns) {
   const trimmed = String(dns || '').trim().replace(/\/+$/, '');
-
-  if (!trimmed) {
-    return '';
-  }
-
+  if (!trimmed) return '';
   return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
 }
 
@@ -25,7 +23,6 @@ function nowIso() {
 
 function createEntry(data = {}) {
   const now = nowIso();
-
   return {
     movieCategories: [],
     movies: [],
@@ -64,10 +61,7 @@ function hasCatalogData(entry) {
 }
 
 function isCacheExpired(entry, ttlMs = CACHE_TTL_MS) {
-  if (!entry || !entry.loadedAt) {
-    return true;
-  }
-
+  if (!entry || !entry.loadedAt) return true;
   return Date.now() - new Date(entry.loadedAt).getTime() > ttlMs;
 }
 
@@ -82,12 +76,7 @@ function getCache(dns, username) {
 function setCache(dns, username, data) {
   const key = buildAccountKey(dns, username);
   const current = accounts.get(key) || createEntry();
-  const next = {
-    ...current,
-    ...data,
-    updatedAt: nowIso()
-  };
-
+  const next = { ...current, ...data, updatedAt: nowIso() };
   accounts.set(key, next);
   return next;
 }
@@ -97,15 +86,8 @@ function startCache(dns, username) {
   const current = accounts.get(key);
   const now = nowIso();
   const entry = current
-    ? {
-        ...current,
-        startedAt: now,
-        updatedAt: now,
-        loading: true,
-        errors: current.errors || {}
-      }
+    ? { ...current, startedAt: now, updatedAt: now, loading: true, errors: current.errors || {} }
     : createEntry({ startedAt: now, updatedAt: now, loading: true });
-
   accounts.set(key, entry);
   return entry;
 }
@@ -139,10 +121,7 @@ function failCache(dns, username, error) {
   return setCache(dns, username, {
     ready: Boolean(entry?.ready),
     loading: false,
-    errors: {
-      ...(entry?.errors || {}),
-      bootstrap: error?.message || 'Erro ao carregar cache.'
-    }
+    errors: { ...(entry?.errors || {}), bootstrap: error?.message || 'Erro ao carregar cache.' }
   });
 }
 

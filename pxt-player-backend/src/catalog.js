@@ -1,4 +1,6 @@
-const { getCatalogItems, hasCatalogSlice } = require('./catalogIndex');
+const path = require('path');
+const { requireLocal } = require(path.join(__dirname, '..', 'requireLocal'));
+const { getCatalogItems, hasCatalogSlice } = requireLocal('catalogIndex');
 
 function isCacheUsable(entry) {
   return Boolean(entry && (entry.ready || entry.loading === false) && hasAnyCatalogData(entry));

@@ -1,4 +1,5 @@
 const LOGIN_TIMEOUT_MS = 10000;
+const STREAM_TIMEOUT_MS = 15000;
 const REQUIRED_LOGIN_ERROR = 'dns, username and password are required';
 
 function createHttpError(message, statusCode = 400) {
@@ -76,10 +77,23 @@ async function parseJsonResponse(response) {
   }
 }
 
-async function fetchXtreamJson(credentials, action, timeoutMs = LOGIN_TIMEOUT_MS) {
+function resolveXtreamTimeout(action, timeoutMs) {
+  if (Number.isFinite(timeoutMs) && timeoutMs > 0) {
+    return timeoutMs;
+  }
+
+  if (action === 'get_live_streams' || action === 'get_vod_streams' || action === 'get_series') {
+    return STREAM_TIMEOUT_MS;
+  }
+
+  return LOGIN_TIMEOUT_MS;
+}
+
+async function fetchXtreamJson(credentials, action, timeoutMs) {
+  const effectiveTimeout = resolveXtreamTimeout(action, timeoutMs);
   const url = buildPlayerApiUrl({ ...credentials, action });
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const timeout = setTimeout(() => controller.abort(), effectiveTimeout);
 
   try {
     const response = await fetch(url, { signal: controller.signal });
@@ -91,7 +105,7 @@ async function fetchXtreamJson(credentials, action, timeoutMs = LOGIN_TIMEOUT_MS
     return parseJsonResponse(response);
   } catch (error) {
     if (error.name === 'AbortError') {
-      throw createHttpError('Xtream server did not respond within 10 seconds.', 504);
+      throw createHttpError(`Xtream server did not respond within ${effectiveTimeout / 1000} seconds.`, 504);
     }
 
     if (error.statusCode) {
@@ -187,13 +201,15 @@ async function bootstrap(credentials) {
   console.log('[bootstrap] iniciando bootstrap');
   const startedAt = Date.now();
 
-  const [movieResults, seriesResults] = await Promise.all([
+  const [movieResults, seriesResults, liveResults] = await Promise.all([
     loadGroup('filmes', credentials, ['get_vod_categories', 'get_vod_streams']),
-    loadGroup('séries', credentials, ['get_series_categories', 'get_series'])
+    loadGroup('séries', credentials, ['get_series_categories', 'get_series']),
+    loadGroup('live', credentials, ['get_live_categories', 'get_live_streams'])
   ]);
 
   const [movieCategoriesResult, moviesResult] = movieResults;
   const [seriesCategoriesResult, seriesResult] = seriesResults;
+  const [liveCategoriesResult, liveChannelsResult] = liveResults;
 
   const errors = {};
 
@@ -201,15 +217,20 @@ async function bootstrap(credentials) {
   const moviesError = resultError(moviesResult);
   const seriesCategoriesError = resultError(seriesCategoriesResult);
   const seriesError = resultError(seriesResult);
+  const liveCategoriesError = resultError(liveCategoriesResult);
+  const liveChannelsError = resultError(liveChannelsResult);
 
   if (movieCategoriesError) errors.movieCategories = movieCategoriesError;
   if (moviesError) errors.movies = moviesError;
   if (seriesCategoriesError) errors.seriesCategories = seriesCategoriesError;
   if (seriesError) errors.series = seriesError;
+  if (liveCategoriesError) errors.liveCategories = liveCategoriesError;
+  if (liveChannelsError) errors.liveChannels = liveChannelsError;
 
   const loadedAt = new Date().toISOString();
   const loadTimeMs = Date.now() - startedAt;
-  const ready = Object.keys(errors).length === 0;
+  const requiredKeys = ['movieCategories', 'movies', 'seriesCategories', 'series'];
+  const ready = requiredKeys.every((key) => !errors[key]);
 
   console.log(`[bootstrap] bootstrap concluído em ${loadTimeMs}ms`);
   console.log(`[bootstrap] tempo total: ${loadTimeMs}ms`);
@@ -219,6 +240,8 @@ async function bootstrap(credentials) {
     movies: moviesResult.status === 'fulfilled' ? normalizeList(moviesResult.value) : [],
     seriesCategories: seriesCategoriesResult.status === 'fulfilled' ? normalizeList(seriesCategoriesResult.value) : [],
     series: seriesResult.status === 'fulfilled' ? normalizeList(seriesResult.value) : [],
+    liveCategories: liveCategoriesResult.status === 'fulfilled' ? normalizeList(liveCategoriesResult.value) : [],
+    liveChannels: liveChannelsResult.status === 'fulfilled' ? normalizeList(liveChannelsResult.value) : [],
     loadedAt,
     loadTimeMs,
     ready,

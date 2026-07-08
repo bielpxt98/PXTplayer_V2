@@ -13,6 +13,7 @@ const {
 const { bootstrap, login, normalizeDns, requireCredentials } = require('./src/xtream');
 const { isValidSearchType, normalizeText, parseSearchLimit, searchCache } = require('./src/search');
 const { getBootstrapStatus, setBootstrapCatalog } = require('./src/bootstrapCatalog');
+const { buildCatalogResponse, requireCatalogEntry } = require('./src/catalog');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -40,6 +41,8 @@ function catalogResponse(entry, extra = {}) {
     movies: counts.movies,
     seriesCategories: counts.seriesCategories,
     series: counts.series,
+    liveCategories: counts.liveCategories,
+    liveChannels: counts.liveChannels,
     startedAt: entry.startedAt,
     loadedAt: entry.loadedAt,
     updatedAt: entry.updatedAt,
@@ -75,6 +78,17 @@ function loadCacheInBackground(credentials) {
       failCache(dns, username, error);
       console.error(`[cache] erro ao carregar ${accountLogContext(dns, username)}: ${error.message}`);
     });
+}
+
+function handleCatalogRequest(kind, req, res) {
+  try {
+    const { dns, username, category_id: categoryId, limit, offset } = req.body;
+    requireCredentials({ dns, username }, false);
+    const entry = requireCatalogEntry(dns, username, getCache);
+    res.json(buildCatalogResponse(kind, entry, categoryId, limit, offset));
+  } catch (error) {
+    handleError(res, error);
+  }
 }
 
 // Endpoint simples para monitoramento de hospedagens como Render/Railway/Fly/VPS.
@@ -151,6 +165,14 @@ app.get('/api/cache/status', (req, res) => {
     handleError(res, error);
   }
 });
+
+// Entrega categorias e itens do cache ja carregado pelo bootstrap.
+app.post('/api/catalog/movie-categories', (req, res) => handleCatalogRequest('movieCategories', req, res));
+app.post('/api/catalog/movies', (req, res) => handleCatalogRequest('movies', req, res));
+app.post('/api/catalog/series-categories', (req, res) => handleCatalogRequest('seriesCategories', req, res));
+app.post('/api/catalog/series', (req, res) => handleCatalogRequest('series', req, res));
+app.post('/api/catalog/live-categories', (req, res) => handleCatalogRequest('liveCategories', req, res));
+app.post('/api/catalog/live', (req, res) => handleCatalogRequest('live', req, res));
 
 // Pesquisa global somente no cache completo ja carregado, sem chamar a API Xtream novamente.
 app.post('/api/search', (req, res) => {

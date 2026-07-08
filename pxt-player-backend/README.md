@@ -138,6 +138,8 @@ A rota valida `dns`, `username` e `password`. Antes de chamar a API Xtream, ela 
 - `action=get_vod_streams`
 - `action=get_series_categories`
 - `action=get_series`
+- `action=get_live_categories`
+- `action=get_live_streams`
 
 ### Requisição
 
@@ -162,6 +164,8 @@ curl -X POST http://localhost:3000/api/bootstrap \
   "movies": 8500,
   "seriesCategories": 12,
   "series": 640,
+  "liveCategories": 8,
+  "liveChannels": 420,
   "startedAt": "2026-07-04T12:34:00.000Z",
   "loadedAt": "2026-07-04T12:34:56.789Z",
   "updatedAt": "2026-07-04T12:34:56.789Z",
@@ -205,6 +209,68 @@ Se uma parte do catálogo falhar, o servidor não é derrubado. As partes carreg
     "movieCategories": "Xtream server responded with HTTP 502.",
     "movies": "Xtream server responded with HTTP 502."
   }
+}
+```
+
+## Catálogo por cache (filmes, séries e TV ao vivo)
+
+Depois que o `POST /api/bootstrap` terminar, o app Roku pode buscar categorias e itens **direto do cache do servidor**, sem chamar a Xtream de novo.
+
+Todas as rotas abaixo usam `POST` com JSON. A senha **não** é necessária — apenas `dns` e `username`.
+
+| Rota | Descrição |
+|---|---|
+| `POST /api/catalog/movie-categories` | Lista categorias de filmes |
+| `POST /api/catalog/movies` | Filmes (`category_id` opcional) |
+| `POST /api/catalog/series-categories` | Lista categorias de séries |
+| `POST /api/catalog/series` | Séries (`category_id` opcional) |
+| `POST /api/catalog/live-categories` | Lista categorias de TV ao vivo |
+| `POST /api/catalog/live` | Canais (`category_id` opcional) |
+
+Parâmetros opcionais em rotas de itens:
+
+- `category_id` — filtra por categoria
+- `limit` — padrão 200, máximo 500
+- `offset` — paginação
+
+### Exemplo: canais de uma categoria de TV
+
+```bash
+curl -X POST http://localhost:3000/api/catalog/live \
+  -H "Content-Type: application/json" \
+  -d '{
+    "dns": "https://servidor.com",
+    "username": "usuario",
+    "category_id": "3",
+    "limit": 200,
+    "offset": 0
+  }'
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "ok": true,
+  "kind": "live",
+  "category_id": "3",
+  "total": 42,
+  "limit": 200,
+  "offset": 0,
+  "count": 42,
+  "items": [],
+  "loadedAt": "2026-07-04T12:34:56.789Z",
+  "updatedAt": "2026-07-04T12:34:56.789Z",
+  "source": "cache"
+}
+```
+
+### Resposta quando o cache ainda não está pronto
+
+```json
+{
+  "ok": false,
+  "error": "cache_not_ready"
 }
 ```
 

@@ -2,10 +2,46 @@ const LOGIN_TIMEOUT_MS = 10000;
 const STREAM_TIMEOUT_MS = 15000;
 const REQUIRED_LOGIN_ERROR = 'dns, username and password are required';
 
+// Backend trancado para um unico servidor Xtream (override via env se necessario).
+const ALLOWED_DNS_HOST = String(process.env.ALLOWED_DNS_HOST || 'ttvp2.live')
+  .trim()
+  .toLowerCase()
+  .replace(/^www\./, '');
+const CANONICAL_DNS = String(process.env.ALLOWED_DNS || 'http://ttvp2.live')
+  .trim()
+  .replace(/\/+$/, '');
+const DNS_NOT_ALLOWED_ERROR = `DNS não permitido. Este backend só funciona com ${CANONICAL_DNS}.`;
+
 function createHttpError(message, statusCode = 400) {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+}
+
+function extractHostname(dns) {
+  const trimmed = String(dns || '').trim().replace(/\/+$/, '');
+
+  if (!trimmed) {
+    return '';
+  }
+
+  try {
+    const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+    return new URL(withProtocol).hostname.toLowerCase().replace(/^www\./, '');
+  } catch (_error) {
+    return '';
+  }
+}
+
+function isAllowedDns(dns) {
+  const host = extractHostname(dns);
+  return Boolean(host) && host === ALLOWED_DNS_HOST;
+}
+
+function assertAllowedDns(dns) {
+  if (!isAllowedDns(dns)) {
+    throw createHttpError(DNS_NOT_ALLOWED_ERROR, 403);
+  }
 }
 
 function normalizeDns(dns) {
@@ -13,6 +49,11 @@ function normalizeDns(dns) {
 
   if (!trimmed) {
     return '';
+  }
+
+  // Qualquer variação válida de ttvp2.live vira o DNS canônico.
+  if (isAllowedDns(trimmed)) {
+    return CANONICAL_DNS;
   }
 
   if (/^https?:\/\//i.test(trimmed)) {
@@ -30,10 +71,14 @@ function requireCredentials({ dns, username, password } = {}, includePassword = 
 
     throw createHttpError('dns and username are required', 400);
   }
+
+  assertAllowedDns(dns);
 }
 
 function buildPlayerApiUrl({ dns, username, password, action }) {
-  const baseDns = normalizeDns(dns);
+  assertAllowedDns(dns);
+  // Sempre chama o Xtream no DNS fixo do provedor.
+  const baseDns = CANONICAL_DNS;
 
   try {
     const url = new URL(`${baseDns}/player_api.php`);
@@ -50,7 +95,11 @@ function buildPlayerApiUrl({ dns, username, password, action }) {
     }
 
     return url;
-  } catch (_error) {
+  } catch (error) {
+    if (error.statusCode) {
+      throw error;
+    }
+
     throw createHttpError('Invalid DNS. Use a valid host with http:// or https://.', 400);
   }
 }
@@ -250,7 +299,11 @@ async function bootstrap(credentials) {
 }
 
 module.exports = {
+  ALLOWED_DNS_HOST,
+  CANONICAL_DNS,
   normalizeDns,
+  isAllowedDns,
+  assertAllowedDns,
   requireCredentials,
   login,
   bootstrap

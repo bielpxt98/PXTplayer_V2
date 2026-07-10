@@ -3,18 +3,14 @@ const path = require('path');
 const { requireLocal } = require(path.join(__dirname, '..', 'requireLocal'));
 const { buildSearchIndex } = requireLocal('search');
 const { buildCategoryIndex } = requireLocal('catalogIndex');
+const { normalizeDns } = requireLocal('xtream');
 
 const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const accounts = new Map();
 
 function normalizeCacheDns(dns) {
-  const trimmed = String(dns || '').trim().replace(/\/+$/, '');
-
-  if (!trimmed) {
-    return '';
-  }
-
-  return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+  // Usa a mesma normalização do xtream (DNS canônico ttvp2.live).
+  return normalizeDns(dns);
 }
 
 function buildAccountKey(dns, username) {

@@ -117,9 +117,21 @@ async function main() {
     await once(mockServer, 'listening');
   }
 
+  const mockDns = `http://127.0.0.1:${MOCK_PORT}`;
+  const backendEnv = {
+    ...process.env,
+    PORT: String(BACKEND_PORT)
+  };
+
+  // Em modo mock, libera temporariamente o DNS local (produção fica trancada em ttvp2.live).
+  if (!useRealXtream) {
+    backendEnv.ALLOWED_DNS_HOST = '127.0.0.1';
+    backendEnv.ALLOWED_DNS = mockDns;
+  }
+
   const backend = spawn(process.execPath, ['server.js'], {
     cwd: process.cwd(),
-    env: { ...process.env, PORT: String(BACKEND_PORT) },
+    env: backendEnv,
     stdio: ['ignore', 'pipe', 'pipe']
   });
 
@@ -128,7 +140,7 @@ async function main() {
 
   const baseUrl = `http://127.0.0.1:${BACKEND_PORT}`;
   const credentials = {
-    dns: useRealXtream ? process.env.XTREAM_DNS : `http://127.0.0.1:${MOCK_PORT}`,
+    dns: useRealXtream ? process.env.XTREAM_DNS : mockDns,
     username: useRealXtream ? process.env.XTREAM_USERNAME : 'mock-user',
     password: useRealXtream ? process.env.XTREAM_PASSWORD : 'mock-password'
   };
